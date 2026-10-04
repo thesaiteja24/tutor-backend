@@ -38,69 +38,38 @@ describe("Practice Modes REST API Suite", () => {
     expect(json.data[0].systemPrompt).toBeDefined();
   });
 
-  it("POST /api/v1/practice-modes -> creates a new practice mode", async () => {
+  it("GET /api/v1/practice-modes/:id -> retrieves single practice mode by UUID", async () => {
+    // Fetch first seeded mode
+    const listRes = await app.inject({
+      method: "GET",
+      url: "/api/v1/practice-modes?limit=1",
+    });
+    const firstMode = listRes.json().data[0];
+    expect(firstMode).toBeDefined();
+
+    const response = await app.inject({
+      method: "GET",
+      url: `/api/v1/practice-modes/${firstMode.id}`,
+    });
+
+    expect(response.statusCode).toBe(200);
+    const json = response.json();
+    expect(json.success).toBe(true);
+    expect(json.data.id).toBe(firstMode.id);
+    expect(json.data.name).toBe(firstMode.name);
+  });
+
+  it("POST /api/v1/practice-modes -> blocked on public routes (404/405)", async () => {
     const response = await app.inject({
       method: "POST",
       url: "/api/v1/practice-modes",
       payload: {
-        name: "IELTS Speaking Coach",
-        description: "Practice IELTS speaking Part 1, 2, and 3 with real-time feedback.",
-        systemPrompt: "=== PRACTICE MODE: IELTS SPEAKING ===\nYou are an official IELTS examiner.",
+        name: "Unauthorized Practice Mode",
+        description: "Test",
+        systemPrompt: "Test",
       },
     });
 
-    expect(response.statusCode).toBe(201);
-    const json = response.json();
-    expect(json.success).toBe(true);
-    expect(json.data.name).toBe("IELTS Speaking Coach");
-    testModeId = json.data.id;
-  });
-
-  it("GET /api/v1/practice-modes/:id -> retrieves single practice mode by UUID", async () => {
-    if (!testModeId) return;
-    const response = await app.inject({
-      method: "GET",
-      url: `/api/v1/practice-modes/${testModeId}`,
-    });
-
-    expect(response.statusCode).toBe(200);
-    const json = response.json();
-    expect(json.success).toBe(true);
-    expect(json.data.id).toBe(testModeId);
-    expect(json.data.name).toBe("IELTS Speaking Coach");
-  });
-
-  it("PATCH /api/v1/practice-modes/:id -> updates practice mode", async () => {
-    if (!testModeId) return;
-    const response = await app.inject({
-      method: "PATCH",
-      url: `/api/v1/practice-modes/${testModeId}`,
-      payload: {
-        name: "IELTS Speaking Master",
-      },
-    });
-
-    expect(response.statusCode).toBe(200);
-    const json = response.json();
-    expect(json.success).toBe(true);
-    expect(json.data.name).toBe("IELTS Speaking Master");
-  });
-
-  it("DELETE /api/v1/practice-modes/:id -> soft deletes practice mode", async () => {
-    if (!testModeId) return;
-    const response = await app.inject({
-      method: "DELETE",
-      url: `/api/v1/practice-modes/${testModeId}`,
-    });
-
-    expect(response.statusCode).toBe(200);
-    const json = response.json();
-    expect(json.success).toBe(true);
-
-    const getResponse = await app.inject({
-      method: "GET",
-      url: `/api/v1/practice-modes/${testModeId}`,
-    });
-    expect(getResponse.statusCode).toBe(404);
+    expect(response.statusCode).toBe(404);
   });
 });

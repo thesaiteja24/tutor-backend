@@ -61,12 +61,12 @@ describe("Authentication & Email Verification Integration Suite", () => {
     // Verify in DB
     const [user] = await db.select().from(users).where(eq(users.email, testEmail));
     expect(user).toBeDefined();
-    expect(user.isEmailVerified).toBe(false);
+    expect(user!.isEmailVerified).toBe(false);
 
     const [otp] = await db.select().from(authOtps).where(eq(authOtps.email, testEmail));
     expect(otp).toBeDefined();
-    expect(otp.purpose).toBe("email_verification");
-    expect(otp.isUsed).toBe(false);
+    expect(otp!.purpose).toBe("email_verification");
+    expect(otp!.isUsed).toBe(false);
   });
 
   it("POST /api/v1/auth/login -> blocks unverified user with 403", async () => {
@@ -112,7 +112,7 @@ describe("Authentication & Email Verification Integration Suite", () => {
 
     // Verify in DB
     const [user] = await db.select().from(users).where(eq(users.email, testEmail));
-    expect(user.isEmailVerified).toBe(true);
+    expect(user!.isEmailVerified).toBe(true);
   });
 
   it("POST /api/v1/auth/login -> authenticates verified user with correct credentials", async () => {
@@ -223,8 +223,10 @@ describe("Authentication & Email Verification Integration Suite", () => {
     expect(loginRes.statusCode).toBe(200);
   });
 
-  it("POST /api/v1/auth/change-email/request & confirm -> handles complete email change flow", async () => {
-    // 1. Re-login with current active password to get fresh token
+  it(
+    "POST /api/v1/auth/change-email/request & confirm -> handles complete email change flow",
+    async () => {
+      // 1. Re-login with current active password to get fresh token
     const loginRes = await app.inject({
       method: "POST",
       url: "/api/v1/auth/login",
@@ -298,6 +300,53 @@ describe("Authentication & Email Verification Integration Suite", () => {
     // Cleanup
     await db.delete(users).where(eq(users.email, newTestEmail));
     await db.delete(authOtps).where(eq(authOtps.email, newTestEmail));
-  });
+  }, 15000);
+
+  it(
+    "POST /api/v1/auth/login -> authenticates seeded superadmin, org_admin, and test user with correct role claims",
+    async () => {
+      // 1. Super Admin login
+    const adminRes = await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/login",
+      payload: {
+        email: "admin@tutor.com",
+        password: "Admin@1234",
+      },
+    });
+    expect(adminRes.statusCode).toBe(200);
+    const adminJson = adminRes.json();
+    expect(adminJson.data.user.role).toBe("superadmin");
+    expect(adminJson.data.user.displayName).toBe("Super Admin");
+
+    // 2. Org Admin login
+    const orgRes = await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/login",
+      payload: {
+        email: "org@tutor.com",
+        password: "Org@1234",
+      },
+    });
+    expect(orgRes.statusCode).toBe(200);
+    const orgJson = orgRes.json();
+    expect(orgJson.data.user.role).toBe("org_admin");
+    expect(orgJson.data.user.displayName).toBe("Org Admin");
+
+    // 3. Test User login
+    const userRes = await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/login",
+      payload: {
+        email: "test@tutor.com",
+        password: "Test@1234",
+      },
+    });
+    expect(userRes.statusCode).toBe(200);
+    const userJson = userRes.json();
+    expect(userJson.data.user.role).toBe("user");
+    expect(userJson.data.user.displayName).toBe("Test User");
+  }, 15000);
 });
+
 

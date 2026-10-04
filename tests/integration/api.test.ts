@@ -39,78 +39,32 @@ describe("AI English Communication Tutor API Suite", () => {
     });
   });
 
-  describe("2. Personas Management Module", () => {
-    it("POST /api/v1/personas -> validates invalid body (missing fields)", async () => {
+  describe("2. Personas Management Module (Learner Access)", () => {
+    it("GET /api/v1/personas -> lists tutor personas for learners", async () => {
       const response = await app.inject({
-        method: "POST",
+        method: "GET",
         url: "/api/v1/personas",
-        payload: {
-          name: "Incomplete Persona",
-        },
-      });
-
-      expect(response.statusCode).toBe(400);
-      const json = response.json();
-      expect(json.success).toBe(false);
-      expect(json.errors.length).toBeGreaterThan(0);
-    });
-
-    it("POST /api/v1/personas -> creates a valid custom tutor practice mode", async () => {
-      const response = await app.inject({
-        method: "POST",
-        url: "/api/v1/personas",
-        payload: {
-          name: "Job Interview Coach",
-          description: "Practice answering behavioral and technical questions in workplace English.",
-          systemPrompt: "You are an interviewer assessing communication clarity and vocabulary.",
-        },
-      });
-
-      if (response.statusCode === 201) {
-        const json = response.json();
-        expect(json.success).toBe(true);
-        expect(json.data.name).toBe("Job Interview Coach");
-        expect(json.data.description).toBe("Practice answering behavioral and technical questions in workplace English.");
-        testPersonaId = json.data.id;
-      } else {
-        expect(response.statusCode).toBe(500); // If DB is not running locally
-      }
-    });
-
-    it("PATCH /api/v1/personas/:id -> updates a custom tutor practice mode", async () => {
-      if (!testPersonaId) return;
-      const response = await app.inject({
-        method: "PATCH",
-        url: `/api/v1/personas/${testPersonaId}`,
-        payload: {
-          name: "Updated Job Interview Coach",
-          description: "Updated description for behavioral interview prep.",
-        },
       });
 
       expect(response.statusCode).toBe(200);
       const json = response.json();
       expect(json.success).toBe(true);
-      expect(json.data.name).toBe("Updated Job Interview Coach");
+      expect(Array.isArray(json.data)).toBe(true);
+      expect(json.meta).toBeDefined();
     });
 
-    it("DELETE /api/v1/personas/:id -> soft deletes the persona and excludes it from list", async () => {
-      if (!testPersonaId) return;
-      const deleteResponse = await app.inject({
-        method: "DELETE",
-        url: `/api/v1/personas/${testPersonaId}`,
+    it("POST /api/v1/personas -> is not available on public route (404/405)", async () => {
+      const response = await app.inject({
+        method: "POST",
+        url: "/api/v1/personas",
+        payload: {
+          name: "Unauthorized Persona",
+          description: "Test",
+          systemPrompt: "Test",
+        },
       });
 
-      expect(deleteResponse.statusCode).toBe(200);
-      const deleteJson = deleteResponse.json();
-      expect(deleteJson.success).toBe(true);
-
-      // Verify that findById or list does not return soft deleted persona
-      const getResponse = await app.inject({
-        method: "GET",
-        url: `/api/v1/personas/${testPersonaId}`,
-      });
-      expect(getResponse.statusCode).toBe(404);
+      expect(response.statusCode).toBe(404);
     });
   });
 

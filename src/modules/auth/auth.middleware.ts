@@ -1,6 +1,7 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { UnauthorizedError } from "@/shared/errors/index.ts";
+import { ForbiddenError, UnauthorizedError } from "@/shared/errors/index.ts";
 import { verifyJwtToken, type UserJwtPayload } from "@/shared/auth/jwt.ts";
+import type { UserRole } from "@/database/schema/users.ts";
 
 declare module "fastify" {
   interface FastifyRequest {
@@ -23,6 +24,22 @@ export async function authenticateUser(request: FastifyRequest, _reply: FastifyR
 }
 
 /**
+ * Fastify preHandler hook restricting access to specific user roles.
+ */
+export function requireRole(...allowedRoles: UserRole[]) {
+  return async (request: FastifyRequest, _reply: FastifyReply) => {
+    if (!request.user) {
+      throw new UnauthorizedError("Authentication required.");
+    }
+    if (!allowedRoles.includes(request.user.role)) {
+      throw new ForbiddenError(
+        `Access denied. Requires one of the following roles: [${allowedRoles.join(", ")}].`
+      );
+    }
+  };
+}
+
+/**
  * Optional authentication hook that populates request.user if a valid token is supplied.
  */
 export async function optionalAuthenticateUser(request: FastifyRequest, _reply: FastifyReply) {
@@ -36,3 +53,4 @@ export async function optionalAuthenticateUser(request: FastifyRequest, _reply: 
     }
   }
 }
+

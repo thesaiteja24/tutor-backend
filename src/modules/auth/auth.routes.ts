@@ -20,6 +20,8 @@ const userProfileSchema = {
     id: { type: "string", format: "uuid" },
     email: { type: "string", format: "email" },
     displayName: { type: "string" },
+    role: { type: "string", enum: ["user", "superadmin", "org_admin"] },
+    orgId: { type: "string", format: "uuid", nullable: true },
     nativeLanguage: { type: "string" },
     englishLevel: { type: "string" },
     isEmailVerified: { type: "boolean" },

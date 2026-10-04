@@ -62,7 +62,7 @@ Always design the data model before writing endpoints. For complete project layo
 - **camelCase**: in TypeScript/JSON/API payloads/Zod schemas/Drizzle TS properties
 - **snake_case**: in PostgreSQL table and column names
 - **PascalCase**: for TypeScript types/interfaces
-- **Module File Names**: follow domain-prefixed convention (`user.routes.ts`, `user.service.ts`, `user.repository.ts`, `user.schema.ts`, `index.ts` under `src/modules/users/`)
+- **Module File Names**: follow domain-prefixed convention (`user.routes.ts`, `user.services.ts`, `user.repositories.ts`, `user.schemas.ts`, `index.ts` under `src/modules/users/`)
 
 ### Index Strategy
 - Always index foreign keys

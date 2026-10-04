@@ -39,6 +39,8 @@ export class AuthService {
       id: user.id,
       email: user.email,
       displayName: user.displayName,
+      role: user.role || "user",
+      orgId: user.orgId || null,
       nativeLanguage: user.nativeLanguage,
       englishLevel: user.englishLevel,
       isEmailVerified: user.isEmailVerified,
@@ -113,6 +115,8 @@ export class AuthService {
         userId: user.id,
         email: user.email,
         displayName: user.displayName,
+        role: user.role || "user",
+        orgId: user.orgId || null,
         nativeLanguage: user.nativeLanguage,
         englishLevel: user.englishLevel,
       });
@@ -146,6 +150,8 @@ export class AuthService {
       userId: updatedUser!.id,
       email: updatedUser!.email,
       displayName: updatedUser!.displayName,
+      role: updatedUser!.role || "user",
+      orgId: updatedUser!.orgId || null,
       nativeLanguage: updatedUser!.nativeLanguage,
       englishLevel: updatedUser!.englishLevel,
     });
@@ -238,6 +244,8 @@ export class AuthService {
       userId: user.id,
       email: user.email,
       displayName: user.displayName,
+      role: user.role || "user",
+      orgId: user.orgId || null,
       nativeLanguage: user.nativeLanguage,
       englishLevel: user.englishLevel,
     });
@@ -419,6 +427,8 @@ export class AuthService {
       userId: updatedUser!.id,
       email: updatedUser!.email,
       displayName: updatedUser!.displayName,
+      role: updatedUser!.role || "user",
+      orgId: updatedUser!.orgId || null,
       nativeLanguage: updatedUser!.nativeLanguage,
       englishLevel: updatedUser!.englishLevel,
     });

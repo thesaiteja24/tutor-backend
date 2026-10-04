@@ -1,6 +1,8 @@
 import { boolean, index, pgTable, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 import { uuidv7 } from "uuidv7";
 
+export type UserRole = "user" | "superadmin" | "org_admin";
+
 export const users = pgTable(
   "users",
   {
@@ -8,6 +10,8 @@ export const users = pgTable(
     email: varchar("email", { length: 255 }).notNull().unique(),
     passwordHash: text("password_hash"),
     displayName: varchar("display_name", { length: 100 }).notNull(),
+    role: varchar("role", { length: 50 }).$type<UserRole>().notNull().default("user"),
+    orgId: uuid("org_id"),
     nativeLanguage: varchar("native_language", { length: 20 }).notNull().default("te"),
     englishLevel: varchar("english_level", { length: 20 }).notNull().default("intermediate"),
     isEmailVerified: boolean("is_email_verified").notNull().default(false),
@@ -21,6 +25,8 @@ export const users = pgTable(
   },
   (table) => [
     index("users_email_idx").on(table.email),
+    index("users_role_idx").on(table.role),
+    index("users_org_id_idx").on(table.orgId),
     index("users_auth_provider_idx").on(table.authProvider, table.providerId),
   ]
 );

@@ -1,6 +1,6 @@
 import type { FastifyRequest } from "fastify";
 import { uuidv7 } from "uuidv7";
-import type { PaginatedMeta, ResponseMeta } from "../schemas/response.schema.ts";
+import type { PaginatedMeta, ResponseMeta } from "../schemas/response.schemas.ts";
 
 export function formatSuccessResponse<T>(
   request: FastifyRequest,

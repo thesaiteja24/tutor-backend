@@ -59,13 +59,15 @@ describe("Password & Auth Security Unit Tests", () => {
     expect(invalid).toBe(false);
   });
 
-  it("signs and verifies 30-day JWT payload", () => {
+  it("signs and verifies 30-day JWT payload with role and orgId claims", () => {
     const payload = {
-      userId: "01950000-0000-7000-8000-000000000000",
-      email: "demo@tutor.app",
-      displayName: "Demo Student",
-      nativeLanguage: "te",
-      englishLevel: "intermediate",
+      userId: "01950000-0000-7000-8000-000000000001",
+      email: "admin@tutor.com",
+      displayName: "Super Admin",
+      role: "superadmin" as const,
+      orgId: "01950000-0000-7000-8000-000000000099",
+      nativeLanguage: "en",
+      englishLevel: "advanced",
     };
 
     const token = signJwtToken(payload);
@@ -76,5 +78,7 @@ describe("Password & Auth Security Unit Tests", () => {
     expect(decoded.userId).toBe(payload.userId);
     expect(decoded.email).toBe(payload.email);
     expect(decoded.displayName).toBe(payload.displayName);
+    expect(decoded.role).toBe("superadmin");
+    expect(decoded.orgId).toBe(payload.orgId);
   });
 });

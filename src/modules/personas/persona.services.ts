@@ -22,6 +22,7 @@ export class PersonaService {
       name: input.name,
       description: input.description,
       systemPrompt: input.systemPrompt,
+      voiceId: input.voiceId,
     });
   }
 

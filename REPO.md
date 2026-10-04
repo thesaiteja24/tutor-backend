@@ -34,16 +34,16 @@ src/
 ├── modules/
 │   ├── auth/
 │   │   ├── auth.routes.ts
-│   │   ├── auth.service.ts
-│   │   ├── auth.repository.ts
-│   │   ├── auth.schema.ts
+│   │   ├── auth.services.ts
+│   │   ├── auth.repositories.ts
+│   │   ├── auth.schemas.ts
 │   │   └── index.ts
 │   │
 │   ├── users/
 │   │   ├── user.routes.ts
-│   │   ├── user.service.ts
-│   │   ├── user.repository.ts
-│   │   ├── user.schema.ts
+│   │   ├── user.services.ts
+│   │   ├── user.repositories.ts
+│   │   ├── user.schemas.ts
 │   │   └── index.ts
 │   │
 │   └── ...
@@ -168,9 +168,9 @@ Example:
 modules/
 └── users/
     ├── user.routes.ts
-    ├── user.service.ts
-    ├── user.repository.ts
-    ├── user.schema.ts
+    ├── user.services.ts
+    ├── user.repositories.ts
+    ├── user.schemas.ts
     └── index.ts
 ```
 
@@ -178,9 +178,9 @@ Module files should follow the domain-prefixed naming format:
 
 ```text
 modules/users/user.routes.ts
-modules/users/user.service.ts
-modules/users/user.repository.ts
-modules/users/user.schema.ts
+modules/users/user.services.ts
+modules/users/user.repositories.ts
+modules/users/user.schemas.ts
 ```
 
 ---
@@ -227,7 +227,7 @@ Do not query the database directly from route handlers.
 
 ---
 
-## `*.service.ts`
+## `*.services.ts`
 
 Contains application and domain business logic.
 
@@ -264,7 +264,7 @@ await userService.createUser(request);
 
 ---
 
-## `*.repository.ts`
+## `*.repositories.ts`
 
 Contains persistence logic.
 
@@ -288,11 +288,11 @@ Do not add repository methods that provide no meaningful abstraction.
 
 For very small modules, direct database access from the service may be acceptable if adding a repository would only create unnecessary pass-through methods.
 
-As the module grows, extract persistence logic into `<domain>.repository.ts`.
+As the module grows, extract persistence logic into `<domain>.repositories.ts`.
 
 ---
 
-## `*.schema.ts`
+## `*.schemas.ts`
 
 Contains all module Zod schemas.
 
@@ -568,11 +568,11 @@ $$\text{Routes} \longrightarrow \text{Service} \longrightarrow \text{Repository}
 
 | File / Layer | Owns | Permitted to Import | Prohibited from Importing |
 |---|---|---|---|
-| **`<domain>.routes.ts`** | HTTP request/reply lifecycle, route schemas, route hooks | `<domain>.service.ts`, `<domain>.schema.ts`, `shared/` | Direct database / `<domain>.repository.ts`, other domain routes |
-| **`<domain>.service.ts`** | Business logic, domain rules, transactions, orchestration | `<domain>.repository.ts`, `<domain>.schema.ts`, other domain public services (`index.ts`), `shared/` | Fastify `request` / `reply` objects, HTTP response builders |
-| **`<domain>.repository.ts`** | Drizzle ORM queries, database filters, persistence | `src/database/schema/`, `src/database/index.ts`, `shared/` | Fastify request/reply, HTTP status codes, user-facing error strings |
-| **`<domain>.schema.ts`** | Zod input/output schemas & inferred TypeScript types | Zod, `shared/schemas/` | Services, repositories, routes, database instances |
-| **`index.ts`** | Public interface of the domain module | `<domain>.routes.ts`, exported `<domain>.service.ts` functions | Private module helpers or internal repositories |
+| **`<domain>.routes.ts`** | HTTP request/reply lifecycle, route schemas, route hooks | `<domain>.services.ts`, `<domain>.schemas.ts`, `shared/` | Direct database / `<domain>.repositories.ts`, other domain routes |
+| **`<domain>.services.ts`** | Business logic, domain rules, transactions, orchestration | `<domain>.repositories.ts`, `<domain>.schemas.ts`, other domain public services (`index.ts`), `shared/` | Fastify `request` / `reply` objects, HTTP response builders |
+| **`<domain>.repositories.ts`** | Drizzle ORM queries, database filters, persistence | `src/database/schema/`, `src/database/index.ts`, `shared/` | Fastify request/reply, HTTP status codes, user-facing error strings |
+| **`<domain>.schemas.ts`** | Zod input/output schemas & inferred TypeScript types | Zod, `shared/schemas/` | Services, repositories, routes, database instances |
+| **`index.ts`** | Public interface of the domain module | `<domain>.routes.ts`, exported `<domain>.services.ts` functions | Private module helpers or internal repositories |
 | **`src/database/schema/`** | Database table definitions (`pgTable`) & relations | `drizzle-orm/pg-core` | Any file inside `src/modules/` |
 | **`src/shared/`** | Generic utilities, standard error classes, constants | Third-party utils | Domain-specific logic from `src/modules/` |
 
@@ -583,16 +583,16 @@ $$\text{Routes} \longrightarrow \text{Service} \longrightarrow \text{Repository}
 The following rules must be followed:
 
 - All domain-specific code belongs under `src/modules/<domain>/`.
-- Each module uses domain-prefixed filenames: `<domain>.routes.ts`, `<domain>.service.ts`, `<domain>.repository.ts`, `<domain>.schema.ts`, and `index.ts`.
+- Each module uses domain-prefixed filenames: `<domain>.routes.ts`, `<domain>.services.ts`, `<domain>.repositories.ts`, `<domain>.schemas.ts`, and `index.ts`.
 - Cross-module communication must only happen through public module services exported via `index.ts`.
 - Never import or query another module's repository or database tables directly.
 - Do not create global domain-specific route/service/repository directories.
 - Do not create `controller.ts` by default.
 - Do not create `types.ts` for Zod or Drizzle inferred types.
 - Route handlers must remain thin and must not directly query the database.
-- Business logic belongs in `<domain>.service.ts`.
-- Persistence logic belongs in `<domain>.repository.ts` when a repository abstraction is useful.
-- Zod schemas belong in `<domain>.schema.ts` and are the source of truth for API contracts.
+- Business logic belongs in `<domain>.services.ts`.
+- Persistence logic belongs in `<domain>.repositories.ts` when a repository abstraction is useful.
+- Zod schemas belong in `<domain>.schemas.ts` and are the source of truth for API contracts.
 - Infer TypeScript types from Zod or Drizzle wherever possible.
 - Fastify integrations belong in `plugins/`.
 - Database infrastructure belongs in `database/`.

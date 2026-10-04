@@ -1,4 +1,4 @@
-import nodemailer from "nodemailer";
+import nodemailer, { type Transporter } from "nodemailer";
 import { env } from "@/config/index.ts";
 import { devLogger } from "@/shared/utils/dev-logger.ts";
 import { renderVerificationOtpEmail } from "./templates/verification-otp.template.ts";
@@ -17,7 +17,7 @@ export interface EmailOptions {
 }
 
 export class EmailService {
-  private transporter: nodemailer.Transporter | null = null;
+  private transporter: Transporter | null = null;
 
   constructor() {
     if (env.SMTP_HOST && env.SMTP_USER) {

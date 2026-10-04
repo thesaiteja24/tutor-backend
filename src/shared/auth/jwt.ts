@@ -2,10 +2,14 @@ import jwt from "jsonwebtoken";
 import { env } from "@/config/index.ts";
 import { UnauthorizedError } from "@/shared/errors/index.ts";
 
+import type { UserRole } from "@/database/schema/users.ts";
+
 export interface UserJwtPayload {
   userId: string;
   email: string;
   displayName: string;
+  role: UserRole;
+  orgId?: string | null;
   nativeLanguage: string;
   englishLevel: string;
 }
@@ -29,6 +33,8 @@ export function verifyJwtToken(token: string): UserJwtPayload {
       userId: decoded.userId,
       email: decoded.email,
       displayName: decoded.displayName,
+      role: decoded.role || "user",
+      orgId: decoded.orgId || null,
       nativeLanguage: decoded.nativeLanguage,
       englishLevel: decoded.englishLevel,
     };

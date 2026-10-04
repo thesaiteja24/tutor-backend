@@ -213,7 +213,7 @@ export class UserRepository {
       const terms: string[] = [
         ...(res?.learningState?.introducedTerms || []),
         ...(res?.turn?.learningState?.introducedTerms || []),
-        ...(m.feedback?.vocabularySuggestions || []),
+        ...(res?.feedback?.vocabularySuggestions || []),
       ];
 
       for (const term of terms) {
@@ -234,7 +234,7 @@ export class UserRepository {
         }
       }
 
-      if (res?.correction?.naturalRewrite || res?.turn?.correction?.naturalRewrite || m.feedback?.grammarCorrections?.length) {
+      if (res?.correction?.naturalRewrite || res?.turn?.correction?.naturalRewrite || res?.feedback?.grammarCorrections?.length) {
         recastsCount++;
       }
     }

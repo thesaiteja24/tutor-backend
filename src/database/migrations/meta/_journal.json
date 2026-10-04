@@ -15,6 +15,13 @@
       "when": 1791098759987,
       "tag": "0001_add_auth_and_otps",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791103922528,
+      "tag": "0002_add_roles_and_admin_telemetry",
+      "breakpoints": true
     }
   ]
 }

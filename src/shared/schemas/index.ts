@@ -1,1 +1,1 @@
-export * from "./response.schema.ts";
+export * from "./response.schemas.ts";
