@@ -1,0 +1,10 @@
+{
+  "id": "stt-provider-failure",
+  "source": "observed-poc",
+  "input": { "kind": "audio", "providerStatus": 415, "providerMessage": "Supported formats: wav, flac, mp3" },
+  "expected": {
+    "retryable": true,
+    "createsCompletedTurn": false,
+    "leavesActiveOrphanMessage": false
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "pass7-provider-resilience",
+  "source": "anonymized-development-logs",
+  "cases": [
+    {
+      "id": "truncated-m4a-recording",
+      "input": { "mimeType": "audio/m4a", "inputBytes": 3232 },
+      "expected": { "rejectBefore": "ffmpeg", "errorCode": "recording_too_short", "retryable": true }
+    },
+    {
+      "id": "hung-tts-provider",
+      "input": { "ttsDurationMs": 49652, "ttsInputCharacters": 142 },
+      "expected": {
+        "boundedByConfiguredTimeout": true,
+        "perRequestRetryLimit": 1,
+        "opensCircuitAfterConsecutiveTimeouts": true,
+        "circuitOpenResult": "fast-retryable-failure-or-safe-fallback",
+        "failureStage": "tts",
+        "retryable": true
+      }
+    }
+  ]
+}

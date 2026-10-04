@@ -1,0 +1,12 @@
+{
+  "id": "greeting-en",
+  "source": "observed-poc",
+  "input": { "kind": "text", "transcript": "Hi" },
+  "expected": {
+    "normalizedTranscript": "Hi",
+    "activity": "conversation",
+    "shouldOfferOptions": false,
+    "correction": "none",
+    "maxLearnerQuestions": 1
+  }
+}

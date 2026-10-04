@@ -1,0 +1,21 @@
+{
+  "id": "pass7-transcript-policy",
+  "source": "anonymized-development-db-and-logs",
+  "cases": [
+    {
+      "id": "missing-confidence-tiny-transcript",
+      "input": { "nativeLanguage": "te", "transcript": "ఎస్", "confidence": null },
+      "expected": { "shouldClarifyTranscript": true, "shouldOfferCorrection": false }
+    },
+    {
+      "id": "cross-script-transcript",
+      "input": { "nativeLanguage": "te", "transcript": "याच", "confidence": null },
+      "expected": { "shouldClarifyTranscript": true, "mustNotAssertUserError": true }
+    },
+    {
+      "id": "vocabulary-persona-active-teaching",
+      "input": { "personaName": "Vocabulary Builder with Emma", "transcript": "I like to go to the beach" },
+      "expected": { "activity": "vocabulary_practice", "atMostOneTerm": true }
+    }
+  ]
+}

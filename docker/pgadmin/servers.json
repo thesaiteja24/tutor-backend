@@ -1,0 +1,13 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "Tutor Database",
+      "Group": "Servers",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "tutor_db",
+      "Username": "postgres",
+      "SSLMode": "prefer"
+    }
+  }
+}

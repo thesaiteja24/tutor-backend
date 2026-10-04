@@ -1,0 +1,19 @@
+{
+  "id": "pass7-mobile-observability",
+  "source": "quality-requirement-from-latest-session-review",
+  "cases": [
+    {
+      "id": "successful-voice-turn-log-correlation",
+      "input": { "event": "voice-turn-success" },
+      "expected": {
+        "logs": ["conversationId", "turnId", "activityType", "uploadDurationMs", "responseDurationMs", "playbackOutcome"],
+        "mustNotLog": ["audioBase64", "rawAudio"]
+      }
+    },
+    {
+      "id": "legacy-partial-turn-payload",
+      "input": { "turn": { "activity": null } },
+      "expected": { "renders": "legacy-message-fallback", "throws": false }
+    }
+  ]
+}

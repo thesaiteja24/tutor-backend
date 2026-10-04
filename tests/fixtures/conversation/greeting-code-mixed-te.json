@@ -1,0 +1,12 @@
+{
+  "id": "greeting-code-mixed-te",
+  "source": "observed-poc",
+  "input": { "kind": "stt", "rawTranscript": "Hi ఎలా ఉన్నావు", "nativeLanguage": "te" },
+  "expected": {
+    "intent": "greeting_and_wellbeing_question",
+    "activity": "conversation",
+    "shouldOfferOptions": false,
+    "mustNotClaimScriptCertainty": true,
+    "maxLearnerQuestions": 1
+  }
+}

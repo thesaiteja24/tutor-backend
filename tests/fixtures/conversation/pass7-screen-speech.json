@@ -1,0 +1,52 @@
+{
+  "id": "pass7-screen-speech",
+  "source": "anonymized-development-db-and-logs",
+  "cases": [
+    {
+      "id": "assistant-prompt-duplicated-in-response",
+      "input": {
+        "englishResponse": "A quiet beach sounds lovely. Do you prefer relaxing on a beach or exploring a busy city?",
+        "learnerPrompt": "Do you prefer relaxing on a beach or exploring a busy city?"
+      },
+      "expected": { "learnerPrompt": null, "speechOccurrencesOfQuestion": 1 }
+    },
+    {
+      "id": "non-actionable-one-word-prompt",
+      "input": {
+        "englishResponse": "That is a good start.",
+        "learnerPrompt": "Yes",
+        "learnerTranscript": "ఎస్"
+      },
+      "expected": { "learnerPrompt": "clear-question-or-explicit-task", "mustNotEchoLearner": true }
+    },
+    {
+      "id": "markdown-in-visible-and-spoken-text",
+      "input": {
+        "englishResponse": "A **spine-chilling** story can be exciting.",
+        "learnerPrompt": "Can you use **spine-chilling** in a sentence?"
+      },
+      "expected": { "containsMarkdownControlSyntax": false }
+    },
+    {
+      "id": "native-parenthetical-english-repeat",
+      "input": {
+        "nativeCoach": "చాలా బాగుంది. (That sounds great.)",
+        "englishResponse": "That sounds great. Tell me more."
+      },
+      "expected": { "nativeCoachContainsRepeatedEnglishTranslation": false }
+    },
+    {
+      "id": "placeholder-activity-id",
+      "input": { "activityId": "id", "activityType": "conversation" },
+      "expected": { "activityId": "stable-non-placeholder" }
+    },
+    {
+      "id": "vocabulary-persona-welcome",
+      "input": {
+        "personaName": "Vocabulary Builder with Emma",
+        "welcomeEnglishResponse": "I’m here to help you practice English naturally."
+      },
+      "expected": { "activityType": "vocabulary_practice", "setsVocabularyExpectation": true }
+    }
+  ]
+}
