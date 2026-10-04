@@ -1,6 +1,7 @@
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from "fastify";
 import { uuidv7 } from "uuidv7";
 import { ZodError } from "zod";
+import { authRoutes } from "@/modules/auth/index.ts";
 import { conversationRoutes } from "@/modules/conversations/index.ts";
 import { devRoutes } from "@/modules/dev/dev.routes.ts";
 import { personaRoutes } from "@/modules/personas/index.ts";
@@ -164,6 +165,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   // Register Domain Modules under /api/v1
   await fastify.register(
     async (api) => {
+      await api.register(authRoutes, { prefix: "/auth" });
       await api.register(userRoutes, { prefix: "/users" });
       await api.register(personaRoutes, { prefix: "/personas" });
       await api.register(practiceModeRoutes, { prefix: "/practice-modes" });

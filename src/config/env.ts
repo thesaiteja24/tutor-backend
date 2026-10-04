@@ -30,6 +30,18 @@ const envSchema = z.object({
   // Storage & Rate limiting
   RATE_LIMIT_MAX: z.coerce.number().default(100),
   RATE_LIMIT_TIME_WINDOW: z.string().default("1 minute"),
+
+  // Authentication & JWT
+  JWT_SECRET: z.string().default("tutor-jwt-secret-key-super-secure-production-2026"),
+  JWT_EXPIRES_IN: z.string().default("30d"),
+
+  // Email Notifications (SMTP / Provider)
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().default(587),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  SMTP_SECURE: z.coerce.boolean().default(false),
+  SMTP_FROM: z.string().default("AI English Tutor <support@tutor.app>"),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);

@@ -38,9 +38,27 @@ export class NotFoundError extends AppError {
   }
 }
 
+export class UnauthorizedError extends AppError {
+  constructor(message: string = "Unauthorized") {
+    super(message, 401, [{ code: "unauthorized", message }]);
+  }
+}
+
+export class ForbiddenError extends AppError {
+  constructor(message: string = "Forbidden") {
+    super(message, 403, [{ code: "forbidden", message }]);
+  }
+}
+
 export class ConflictError extends AppError {
   constructor(message: string = "Conflict occurred") {
     super(message, 409, [{ code: "conflict", message }]);
+  }
+}
+
+export class TooManyRequestsError extends AppError {
+  constructor(message: string = "Too many requests. Please slow down.") {
+    super(message, 429, [{ code: "too_many_requests", message }]);
   }
 }
 
@@ -49,3 +67,4 @@ export class RateLimitError extends AppError {
     super(message, 429, [{ code: "rate_limit_exceeded", message }]);
   }
 }
+
