@@ -1,6 +1,8 @@
 import type { FastifyPluginAsync } from "fastify";
+
 import { personaService } from "@/modules/personas/persona.services.ts";
 import { formatPaginatedResponse, formatSuccessResponse } from "@/shared/utils/response.ts";
+
 import {
   getPersonaParamsSchema,
   listPersonasQuerySchema,
@@ -71,9 +73,9 @@ export const personaRoutes: FastifyPluginAsync = async (fastify) => {
           total,
           limit: query.limit,
           offset: query.offset,
-        })
+        }),
       );
-    }
+    },
   );
 
   // GET /api/v1/personas/:id -> Get single persona
@@ -110,8 +112,8 @@ export const personaRoutes: FastifyPluginAsync = async (fastify) => {
       const persona = await personaService.getPersonaById(id);
 
       return reply.code(200).send(
-        formatSuccessResponse(request, "Persona retrieved successfully", persona)
+        formatSuccessResponse(request, "Persona retrieved successfully", persona),
       );
-    }
+    },
   );
 };

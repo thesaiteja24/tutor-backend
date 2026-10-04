@@ -1,233 +1,39 @@
 import { env } from "@/config/index.ts";
-import {
-  createFallbackTutorTurn,
-  parseTutorTurnResponse,
-  type TutorTurnResponse,
-  buildTutorSystemPrompt,
-  RESPONSE_CONTRACT,
-} from "@/shared/ai/tutor.helpers.ts";
 import { devLogger } from "@/shared/utils/dev-logger.ts";
 
-export interface HistoryItem {
-  role: "user" | "assistant";
-  content: string;
-}
+import {
+  type ChatMessage,
+  type LLMProvider,
+  TUTOR_TURN_JSON_SCHEMA,
+  type TutorLLMParams,
+} from "./llm.types.ts";
+import { SentenceStreamExtractor } from "./sentence-stream.extractor.ts";
+import {
+  buildTutorSystemPrompt,
+  createFallbackTutorTurn,
+  parseTutorTurnResponse,
+  stripJsonFence,
+  type TutorTurnResponse,
+  validationSummary,
+} from "./tutor.helpers.ts";
 
-export interface TutorLLMParams {
-  systemPrompt?: string;
-  history: HistoryItem[];
-  userMessage: string;
-  personaPrompt?: string;
-  practiceModePrompt?: string;
-  customPrompt?: string | null;
-  nativeLanguage?: string;
-  englishLevel?: string;
-  introducedTerms?: string[];
-  onSentenceChunk?: (sentence: string) => Promise<void> | void;
-  onTextDelta?: (delta: string) => Promise<void> | void;
-}
-
-export class SentenceStreamExtractor {
-  private buffer = "";
-  private inContentString = false;
-  private contentExtracted = false;
-  private currentSentence = "";
-  private escaped = false;
-  private completedSentences: string[] = [];
-
-  feed(
-    chunk: string,
-    onSentence?: (sentence: string) => void,
-    onTextDelta?: (delta: string) => void
-  ) {
-    this.buffer += chunk;
-    if (this.contentExtracted) return;
-
-    if (!this.inContentString) {
-      const match = this.buffer.match(/"content"\s*:\s*"/);
-      if (match && match.index !== undefined) {
-        this.inContentString = true;
-        const afterQuote = this.buffer.slice(match.index + match[0].length);
-        this.processContentChars(afterQuote, onSentence, onTextDelta);
-      }
-    } else {
-      this.processContentChars(chunk, onSentence, onTextDelta);
-    }
-  }
-
-  private processContentChars(
-    text: string,
-    onSentence?: (sentence: string) => void,
-    onTextDelta?: (delta: string) => void
-  ) {
-    let unescapedDelta = "";
-    for (let i = 0; i < text.length; i++) {
-      if (this.contentExtracted) break;
-      const char = text[i];
-      if (this.escaped) {
-        const decoded = char === "n" ? "\n" : char === "t" ? "\t" : char;
-        this.currentSentence += decoded;
-        unescapedDelta += decoded;
-        this.escaped = false;
-        continue;
-      }
-
-      if (char === "\\") {
-        this.escaped = true;
-        continue;
-      }
-
-      if (char === '"') {
-        this.inContentString = false;
-        this.contentExtracted = true;
-        if (unescapedDelta) {
-          onTextDelta?.(unescapedDelta);
-          unescapedDelta = "";
-        }
-        const remaining = this.currentSentence.trim();
-        if (remaining) {
-          this.completedSentences.push(remaining);
-          onSentence?.(remaining);
-          this.currentSentence = "";
-        }
-        break;
-      }
-
-      this.currentSentence += char;
-      unescapedDelta += char;
-
-      if (
-        (char === "." || char === "!" || char === "?" || char === "।" || char === "\n") &&
-        this.currentSentence.trim().length >= 4
-      ) {
-        if (unescapedDelta) {
-          onTextDelta?.(unescapedDelta);
-          unescapedDelta = "";
-        }
-        const sentence = this.currentSentence.trim();
-        this.completedSentences.push(sentence);
-        onSentence?.(sentence);
-        this.currentSentence = "";
-      }
-    }
-
-    if (unescapedDelta && !this.contentExtracted) {
-      onTextDelta?.(unescapedDelta);
-    }
-  }
-
-  flush(onSentence?: (sentence: string) => void) {
-    const remaining = this.currentSentence.trim();
-    if (remaining) {
-      this.completedSentences.push(remaining);
-      onSentence?.(remaining);
-      this.currentSentence = "";
-    }
-  }
-}
-
-export interface LLMProvider {
-  generateTutorReply(params: TutorLLMParams): Promise<TutorTurnResponse>;
-}
-
-type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
-
-const TUTOR_TURN_JSON_SCHEMA = {
-  type: "object",
-  additionalProperties: false,
-  required: ["content", "special", "copiable", "options", "correction", "learningState"],
-  properties: {
-    content: { type: "string" },
-    special: { anyOf: [{ type: "string" }, { type: "null" }] },
-    copiable: { anyOf: [{ type: "string" }, { type: "null" }] },
-    options: {
-      anyOf: [
-        {
-          type: "array",
-          items: {
-            type: "object",
-            additionalProperties: false,
-            required: ["id", "text"],
-            properties: {
-              id: { anyOf: [{ type: "number" }, { type: "string" }] },
-              text: { type: "string" },
-            },
-          },
-        },
-        { type: "null" },
-      ],
-    },
-    correction: {
-      anyOf: [
-        {
-          type: "object",
-          additionalProperties: false,
-          required: ["original", "naturalRewrite", "explanation"],
-          properties: {
-            original: { type: "string" },
-            naturalRewrite: { type: "string" },
-            explanation: { anyOf: [{ type: "string" }, { type: "null" }] },
-          },
-        },
-        { type: "null" },
-      ],
-    },
-    learningState: {
-      anyOf: [
-        {
-          type: "object",
-          additionalProperties: false,
-          required: ["topic", "introducedTerms", "targetSkill"],
-          properties: {
-            topic: { anyOf: [{ type: "string" }, { type: "null" }] },
-            introducedTerms: { type: "array", items: { type: "string" } },
-            targetSkill: { anyOf: [{ type: "string" }, { type: "null" }] },
-          },
-        },
-        { type: "null" },
-      ],
-    },
-  },
-} as const;
-
-function stripJsonFence(content: string) {
-  return content.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
-}
-
-function validationSummary(error: unknown) {
-  if (error && typeof error === "object" && "issues" in error && Array.isArray((error as any).issues)) {
-    return (error as any).issues
-      .slice(0, 5)
-      .map((issue: any) => `${issue.path?.join(".") || "response"}: ${issue.message}`)
-      .join("; ");
-  }
-  return error instanceof Error ? error.message : "invalid response";
-}
+export type { ChatMessage, LLMProvider, TutorLLMParams };
 
 export class OpenAILLMProvider implements LLMProvider {
-  private apiKey: string;
-  private baseUrl: string;
-  private model: string;
-  private maxTokens: number;
-
-  constructor(options?: { apiKey?: string; baseUrl?: string; model?: string }) {
-    this.apiKey = options?.apiKey || env.OPENAI_API_KEY || "";
-    this.baseUrl = (options?.baseUrl || env.OPENAI_BASE_URL).replace(/\/+$/, "");
-    this.model = options?.model || env.OPENAI_MODEL;
-    this.maxTokens = env.OPENAI_MAX_COMPLETION_TOKENS;
-  }
+  private apiKey = env.OPENAI_API_KEY;
+  private baseUrl = env.OPENAI_BASE_URL;
+  private model = env.OPENAI_MODEL;
+  private maxTokens = env.OPENAI_MAX_COMPLETION_TOKENS;
 
   async generateTutorReply(params: TutorLLMParams): Promise<TutorTurnResponse> {
-    const systemPrompt =
-      params.systemPrompt ||
-      buildTutorSystemPrompt({
-        personaPrompt: params.personaPrompt || "You are a warm, encouraging AI English tutor.",
-        practiceModePrompt: params.practiceModePrompt,
-        customPrompt: params.customPrompt,
-        nativeLanguage: params.nativeLanguage,
-        englishLevel: params.englishLevel,
-        introducedTerms: params.introducedTerms,
-      });
+    const systemPrompt = buildTutorSystemPrompt({
+      personaPrompt: params.personaPrompt,
+      practiceModePrompt: params.practiceModePrompt,
+      customPrompt: params.customPrompt,
+      nativeLanguage: params.nativeLanguage,
+      englishLevel: params.englishLevel,
+      learnerContextPrompt: params.learnerContextPrompt,
+    });
 
     const messages: ChatMessage[] = [
       { role: "system", content: systemPrompt },
@@ -293,7 +99,7 @@ export class OpenAILLMProvider implements LLMProvider {
   private async streamCompletion(
     messages: ChatMessage[],
     onSentence?: (sentence: string) => Promise<void> | void,
-    onTextDelta?: (delta: string) => Promise<void> | void
+    onTextDelta?: (delta: string) => Promise<void> | void,
   ): Promise<string> {
     if (!this.apiKey) {
       throw new Error("OPENAI_API_KEY is not configured on the backend");
@@ -341,7 +147,9 @@ export class OpenAILLMProvider implements LLMProvider {
         if (!trimmed || trimmed.startsWith(":") || trimmed === "data: [DONE]") continue;
         if (trimmed.startsWith("data: ")) {
           try {
-            const data = JSON.parse(trimmed.slice(6));
+            const data = JSON.parse(trimmed.slice(6)) as {
+              choices?: Array<{ delta?: { content?: string } }>;
+            };
             const delta = data.choices?.[0]?.delta?.content;
             if (delta) {
               accumulated += delta;

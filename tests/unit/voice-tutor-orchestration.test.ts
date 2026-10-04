@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+
 import { VoiceTutorService } from "@/modules/voice-tutor/voice-tutor.services.ts";
 import type { TutorTurnResponse } from "@/shared/ai/tutor.helpers.ts";
 
@@ -11,8 +12,14 @@ const sampleTurn: TutorTurnResponse = {
   learningState: { topic: "Daily Routine", introducedTerms: [], targetSkill: "fluency" },
 };
 
+interface MockCalls {
+  begin?: Record<string, unknown>;
+  complete?: { turnId?: string; userMessageId?: string; assistantMessage?: unknown };
+  failed?: { id: string; failure: Record<string, unknown> };
+}
+
 function createDependencies() {
-  const calls: { begin?: any; complete?: any; failed?: any } = {};
+  const calls: MockCalls = {};
   return {
     calls,
     dependencies: {
@@ -25,16 +32,16 @@ function createDependencies() {
           customPrompt: null,
           persona: { name: "Emma", voiceId: "ritu", systemPrompt: "You are Emma, a calm tutor." },
         }),
-        beginUserTurn: async (data: any) => {
+        beginUserTurn: async (data: Record<string, unknown>) => {
           calls.begin = data;
           return { turnId: "turn-id", message: { id: "user-message-id" } };
         },
         getRecentMessages: async () => [],
-        completeUserTurn: async (data: any) => {
+        completeUserTurn: async (data: { turnId: string; userMessageId: string; assistantMessage: unknown }) => {
           calls.complete = data;
           return { id: "assistant-message-id" };
         },
-        failUserTurn: async (id: string, failure: any) => {
+        failUserTurn: async (id: string, failure: Record<string, unknown>) => {
           calls.failed = { id, failure };
           return true;
         },
@@ -46,6 +53,8 @@ function createDependencies() {
   };
 }
 
+type TutorDeps = NonNullable<ConstructorParameters<typeof VoiceTutorService>[3]>;
+
 describe("voice tutor orchestration", () => {
   it("rejects a truncated recording before STT or turn creation", async () => {
     const { calls, dependencies } = createDependencies();
@@ -54,11 +63,11 @@ describe("voice tutor orchestration", () => {
       { transcribe: async () => { sttCalls += 1; return { text: "unused" }; } },
       { generateTutorReply: async () => sampleTurn },
       { synthesize: async () => ({ audioBuffer: Buffer.from("audio"), mimeType: "audio/mpeg" as const, format: "mp3" as const }) },
-      dependencies as any
+      dependencies as unknown as TutorDeps,
     );
 
     await expect(
-      service.processPushToTalk("conversation-id", Buffer.alloc(100), "audio/wav")
+      service.processPushToTalk("conversation-id", Buffer.alloc(100), "audio/wav"),
     ).rejects.toThrow("too short to process");
 
     expect(sttCalls).toBe(0);
@@ -77,15 +86,15 @@ describe("voice tutor orchestration", () => {
           return { audioBuffer: Buffer.from("audio"), mimeType: "audio/mpeg", format: "mp3" as const };
         },
       },
-      dependencies as any
+      dependencies as unknown as TutorDeps,
     );
 
     const result = await service.processTextInteraction("conversation-id", "I had a good day");
 
     expect(ttsInput).toBe("That sounds great! What happened next?");
-    expect(calls.begin.transcript).toBe("I had a good day");
-    expect(calls.complete.turnId).toBe("turn-id");
-    expect(calls.complete.assistantMessage.content).toBe(sampleTurn.content);
+    expect(calls.begin?.transcript).toBe("I had a good day");
+    expect(calls.complete?.turnId).toBe("turn-id");
+    expect((calls.complete?.assistantMessage as { content: string })?.content).toBe(sampleTurn.content);
     expect(result.turn.content).toBe(sampleTurn.content);
     expect(result.audioBase64).toBe(Buffer.from("audio").toString("base64"));
   });
@@ -100,11 +109,11 @@ describe("voice tutor orchestration", () => {
           throw new Error("TTS unavailable");
         },
       },
-      dependencies as any
+      dependencies as unknown as TutorDeps,
     );
 
     await expect(service.processTextInteraction("conversation-id", "I had a good day")).rejects.toThrow(
-      "TTS unavailable"
+      "TTS unavailable",
     );
     expect(calls.failed).toMatchObject({
       id: "user-message-id",
@@ -115,11 +124,11 @@ describe("voice tutor orchestration", () => {
 
   it("processes a streaming interaction with sentence-level TTS chunks", async () => {
     const { calls, dependencies } = createDependencies();
-    const audioChunks: any[] = [];
+    const audioChunks: Array<{ index: number; audioBase64: string; format: string; text: string }> = [];
     const service = new VoiceTutorService(
       { transcribe: async () => ({ text: "I went to market" }) },
       {
-        generateTutorReply: async (params: any) => {
+        generateTutorReply: async (params: { onSentenceChunk?: (chunk: string) => Promise<void> | void }) => {
           if (params.onSentenceChunk) {
             await params.onSentenceChunk("Very good!");
             await params.onSentenceChunk("What did you buy?");
@@ -134,7 +143,7 @@ describe("voice tutor orchestration", () => {
           format: "wav" as const,
         }),
       },
-      dependencies as any
+      dependencies as unknown as TutorDeps,
     );
 
     const result = await service.processStreamingInteraction({
@@ -147,8 +156,8 @@ describe("voice tutor orchestration", () => {
 
     expect(result).toBeDefined();
     expect(audioChunks.length).toBe(2);
-    expect(audioChunks[0].text).toBe("Very good!");
-    expect(audioChunks[1].text).toBe("What did you buy?");
-    expect(calls.complete.turnId).toBe("turn-id");
+    expect(audioChunks[0]?.text).toBe("Very good!");
+    expect(audioChunks[1]?.text).toBe("What did you buy?");
+    expect(calls.complete?.turnId).toBe("turn-id");
   });
 });

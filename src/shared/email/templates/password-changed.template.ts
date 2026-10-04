@@ -1,6 +1,6 @@
 export function renderPasswordChangedEmail(data: { displayName: string; changedAt?: string }): { subject: string; html: string; text: string } {
   const timeStr = data.changedAt || new Date().toUTCString();
-  const subject = `Your AI English Tutor password was changed`;
+  const subject = "Your AI English Tutor password was changed";
   const text = `Hi ${data.displayName},\n\nYour password for AI English Tutor was successfully changed on ${timeStr}.\n\nIf you made this change, no further action is needed.\n\nIf you did NOT change your password, please contact support@tutor.app immediately to protect your account.\n\nBest,\nThe AI Tutor Security Team`;
 
   const html = `<!DOCTYPE html>

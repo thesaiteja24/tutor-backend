@@ -1,5 +1,8 @@
 import type { FastifyPluginAsync } from "fastify";
+
 import { formatSuccessResponse } from "@/shared/utils/response.ts";
+
+import { authenticateUser } from "./auth.middleware.ts";
 import {
   changePasswordSchema,
   confirmChangeEmailSchema,
@@ -12,7 +15,6 @@ import {
   verifyEmailSchema,
 } from "./auth.schemas.ts";
 import { authService } from "./auth.services.ts";
-import { authenticateUser } from "./auth.middleware.ts";
 
 const userProfileSchema = {
   type: "object",
@@ -86,9 +88,9 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
       const input = registerSchema.parse(request.body);
       const result = await authService.register(input);
       return reply.code(201).send(
-        formatSuccessResponse(request, "Account registration initiated", result)
+        formatSuccessResponse(request, "Account registration initiated", result),
       );
-    }
+    },
   );
 
   // POST /api/v1/auth/verify-email
@@ -125,9 +127,9 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
       const input = verifyEmailSchema.parse(request.body);
       const result = await authService.verifyEmail(input);
       return reply.code(200).send(
-        formatSuccessResponse(request, "Email verified successfully", result)
+        formatSuccessResponse(request, "Email verified successfully", result),
       );
-    }
+    },
   );
 
   // POST /api/v1/auth/resend-otp
@@ -152,9 +154,9 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
       const input = resendOtpSchema.parse(request.body);
       const result = await authService.resendOtp(input);
       return reply.code(200).send(
-        formatSuccessResponse(request, "Verification code sent", result)
+        formatSuccessResponse(request, "Verification code sent", result),
       );
-    }
+    },
   );
 
   // POST /api/v1/auth/login
@@ -195,9 +197,9 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
       };
       const result = await authService.login(input, meta);
       return reply.code(200).send(
-        formatSuccessResponse(request, "Login successful", result)
+        formatSuccessResponse(request, "Login successful", result),
       );
-    }
+    },
   );
 
   // POST /api/v1/auth/forgot-password
@@ -221,9 +223,9 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
       const input = forgotPasswordSchema.parse(request.body);
       const result = await authService.forgotPassword(input);
       return reply.code(200).send(
-        formatSuccessResponse(request, "Reset code dispatched", result)
+        formatSuccessResponse(request, "Reset code dispatched", result),
       );
-    }
+    },
   );
 
   // POST /api/v1/auth/reset-password
@@ -249,9 +251,9 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
       const input = resetPasswordSchema.parse(request.body);
       const result = await authService.resetPassword(input);
       return reply.code(200).send(
-        formatSuccessResponse(request, "Password reset successful", result)
+        formatSuccessResponse(request, "Password reset successful", result),
       );
-    }
+    },
   );
 
   // POST /api/v1/auth/change-password (Authenticated In-App)
@@ -279,9 +281,9 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
       const userId = request.user!.userId;
       const result = await authService.changePassword(userId, input);
       return reply.code(200).send(
-        formatSuccessResponse(request, "Password updated successfully", result)
+        formatSuccessResponse(request, "Password updated successfully", result),
       );
-    }
+    },
   );
 
   // POST /api/v1/auth/change-email/request (Authenticated In-App)
@@ -309,9 +311,9 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
       const userId = request.user!.userId;
       const result = await authService.requestChangeEmail(userId, input);
       return reply.code(200).send(
-        formatSuccessResponse(request, "Email change verification code dispatched", result)
+        formatSuccessResponse(request, "Email change verification code dispatched", result),
       );
-    }
+    },
   );
 
   // POST /api/v1/auth/change-email/confirm (Authenticated In-App)
@@ -339,9 +341,9 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
       const userId = request.user!.userId;
       const result = await authService.confirmChangeEmail(userId, input);
       return reply.code(200).send(
-        formatSuccessResponse(request, "Email changed successfully", result)
+        formatSuccessResponse(request, "Email changed successfully", result),
       );
-    }
+    },
   );
 
   // GET /api/v1/auth/me (Authenticated Profile Check)
@@ -371,8 +373,8 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
       const userId = request.user!.userId;
       const user = await authService.getMe(userId);
       return reply.code(200).send(
-        formatSuccessResponse(request, "User profile retrieved successfully", user)
+        formatSuccessResponse(request, "User profile retrieved successfully", user),
       );
-    }
+    },
   );
 };

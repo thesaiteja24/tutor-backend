@@ -1,16 +1,19 @@
 import { describe, expect, it } from "bun:test";
+
+import { type ConversationRepository } from "@/modules/conversations/conversation.repositories.ts";
 import { ConversationService } from "@/modules/conversations/conversation.services.ts";
+import { type LLMProvider, type TTSProvider } from "@/shared/ai/index.ts";
 
 describe("conversation turn lifecycle", () => {
   it("persists the canonical learner transcript when a turn begins", async () => {
-    let received: any;
+    let received: Record<string, unknown> | undefined;
     const repo = {
-      createPendingUserMessage: async (data: any) => {
+      createPendingUserMessage: async (data: Record<string, unknown>) => {
         received = data;
         return { turnId: "01950000-0000-7000-8000-000000000099", message: { id: "01950000-0000-7000-8000-000000000100" } };
       },
     };
-    const service = new ConversationService(repo as any);
+    const service = new ConversationService(repo as unknown as ConversationRepository);
 
     await service.beginUserTurn({
       conversationId: "01950000-0000-7000-8000-000000000010",
@@ -28,14 +31,14 @@ describe("conversation turn lifecycle", () => {
   });
 
   it("completes the exact pending learner turn with its assistant reply", async () => {
-    let received: any;
+    let received: { turnId?: string; userMessageId?: string; assistantMessage?: { content?: string } } | undefined;
     const repo = {
-      completeTurn: async (data: any) => {
+      completeTurn: async (data: { turnId: string; userMessageId: string; assistantMessage: { content: string } }) => {
         received = data;
         return { id: "01950000-0000-7000-8000-000000000101" };
       },
     };
-    const service = new ConversationService(repo as any);
+    const service = new ConversationService(repo as unknown as ConversationRepository);
 
     await service.completeUserTurn({
       conversationId: "01950000-0000-7000-8000-000000000010",
@@ -44,20 +47,20 @@ describe("conversation turn lifecycle", () => {
       assistantMessage: { content: "That sounds great! What did you enjoy today?" },
     });
 
-    expect(received.turnId).toBe("01950000-0000-7000-8000-000000000099");
-    expect(received.userMessageId).toBe("01950000-0000-7000-8000-000000000100");
-    expect(received.assistantMessage.content).toBe("That sounds great! What did you enjoy today?");
+    expect(received?.turnId).toBe("01950000-0000-7000-8000-000000000099");
+    expect(received?.userMessageId).toBe("01950000-0000-7000-8000-000000000100");
+    expect(received?.assistantMessage?.content).toBe("That sounds great! What did you enjoy today?");
   });
 
   it("marks a pending turn as failed with retry-safe stage metadata", async () => {
-    let received: any;
+    let received: { messageId: string; failure: Record<string, unknown> } | undefined;
     const repo = {
-      failPendingTurn: async (messageId: string, failure: any) => {
+      failPendingTurn: async (messageId: string, failure: Record<string, unknown>) => {
         received = { messageId, failure };
         return true;
       },
     };
-    const service = new ConversationService(repo as any);
+    const service = new ConversationService(repo as unknown as ConversationRepository);
 
     const result = await service.failUserTurn("01950000-0000-7000-8000-000000000100", {
       stage: "tts",
@@ -79,13 +82,13 @@ describe("conversation turn lifecycle", () => {
   });
 
   it("generates dynamic opening greeting and synthesizes audio on conversation creation", async () => {
-    let addedMessage: any;
+    let addedMessage: { audioUrl?: string } | undefined;
     const repo = {
-      create: async (data: any) => ({
+      create: async (data: Record<string, unknown>) => ({
         id: "01950000-0000-7000-8000-000000000010",
         ...data,
       }),
-      addMessage: async (data: any) => {
+      addMessage: async (data: { audioUrl?: string }) => {
         addedMessage = data;
         return {
           id: "01950000-0000-7000-8000-000000000102",
@@ -113,7 +116,11 @@ describe("conversation turn lifecycle", () => {
       }),
     };
 
-    const service = new ConversationService(repo as any, mockLlm as any, mockTts as any);
+    const service = new ConversationService(
+      repo as unknown as ConversationRepository,
+      mockLlm as unknown as LLMProvider,
+      mockTts as unknown as TTSProvider,
+    );
     const result = await service.createConversation({
       personaId: "01950000-0000-7000-8000-000000000001",
       practiceModeId: "01950000-0000-7000-9000-000000000001",
@@ -122,6 +129,6 @@ describe("conversation turn lifecycle", () => {
     expect(result.id).toBe("01950000-0000-7000-8000-000000000010");
     expect(result.messages.length).toBe(1);
     expect(result.messages[0]?.audioUrl).toContain("_greeting.wav");
-    expect(addedMessage.audioUrl).toContain("_greeting.wav");
+    expect(addedMessage?.audioUrl).toContain("_greeting.wav");
   });
 });

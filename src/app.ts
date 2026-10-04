@@ -1,6 +1,7 @@
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from "fastify";
 import { uuidv7 } from "uuidv7";
 import { ZodError } from "zod";
+
 import { adminModule } from "@/modules/admin/index.ts";
 import { authRoutes } from "@/modules/auth/index.ts";
 import { conversationRoutes } from "@/modules/conversations/index.ts";
@@ -14,6 +15,14 @@ import { AppError } from "@/shared/errors/index.ts";
 import { devLogger } from "@/shared/utils/dev-logger.ts";
 import { formatSuccessResponse } from "@/shared/utils/response.ts";
 
+const requestStartTimes = new WeakMap<FastifyRequest, number>();
+
+interface FastifyValidationError {
+  instancePath?: string;
+  params?: { missingProperty?: string };
+  message?: string;
+}
+
 export async function buildApp(): Promise<FastifyInstance> {
   const fastify = Fastify({
     logger: {
@@ -21,13 +30,13 @@ export async function buildApp(): Promise<FastifyInstance> {
       transport:
         process.env.NODE_ENV === "development"
           ? {
-              target: "pino-pretty",
-              options: {
-                colorize: true,
-                translateTime: "HH:MM:ss Z",
-                ignore: "pid,hostname",
-              },
-            }
+            target: "pino-pretty",
+            options: {
+              colorize: true,
+              translateTime: "HH:MM:ss Z",
+              ignore: "pid,hostname",
+            },
+          }
           : undefined,
     },
     genReqId: (req) => (req.headers["x-request-id"] as string) || uuidv7(),
@@ -49,7 +58,7 @@ export async function buildApp(): Promise<FastifyInstance> {
 
   // Dev Logging Hooks
   fastify.addHook("onRequest", async (request) => {
-    (request as any).__startTime = performance.now();
+    requestStartTimes.set(request, performance.now());
     devLogger.info("HTTP:Request", `${request.method} ${request.url}`, {
       id: request.id,
       ip: request.ip,
@@ -58,7 +67,8 @@ export async function buildApp(): Promise<FastifyInstance> {
   });
 
   fastify.addHook("onResponse", async (request, reply) => {
-    const elapsed = Math.round(performance.now() - ((request as any).__startTime || performance.now()));
+    const startTime = requestStartTimes.get(request) || performance.now();
+    const elapsed = Math.round(performance.now() - startTime);
     devLogger.info("HTTP:Response", `${request.method} ${request.url} -> ${reply.statusCode} (${elapsed}ms)`, {
       id: request.id,
       statusCode: reply.statusCode,
@@ -67,7 +77,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   });
 
   // Global Error Handler
-  fastify.setErrorHandler((error: Error, request: FastifyRequest, reply: FastifyReply) => {
+  fastify.setErrorHandler((error: Error & { statusCode?: number; validation?: FastifyValidationError[]; issues?: unknown[] }, request: FastifyRequest, reply: FastifyReply) => {
     const timestamp = new Date().toISOString();
     const requestId = (request.id as string) || uuidv7();
 
@@ -77,12 +87,11 @@ export async function buildApp(): Promise<FastifyInstance> {
       url: request.url,
     });
 
-    // 1. Handle Zod or Fastify Validation Errors
-    if (error instanceof ZodError || error.name === "ZodError" || (error as any).issues) {
-      const issues = (error as any).issues || [];
-      const fieldErrors = issues.map((issue: any) => ({
+    // 1. Handle Zod Validation Errors
+    if (error instanceof ZodError) {
+      const fieldErrors = error.issues.map((issue) => ({
         code: "validation_error",
-        field: issue.path?.join(".") || undefined,
+        field: issue.path.join(".") || undefined,
         message: issue.message,
         details: issue,
       }));
@@ -95,8 +104,8 @@ export async function buildApp(): Promise<FastifyInstance> {
       });
     }
 
-    if ((error as any).validation) {
-      const validationErrors = (error as any).validation.map((v: any) => ({
+    if (error.validation && Array.isArray(error.validation)) {
+      const validationErrors = error.validation.map((v) => ({
         code: "validation_error",
         field: v.instancePath?.replace(/^\//, "").replace(/\//g, ".") || (v.params?.missingProperty as string) || undefined,
         message: v.message || "Invalid value",
@@ -122,7 +131,7 @@ export async function buildApp(): Promise<FastifyInstance> {
     }
 
     // 3. Fastify HTTP Errors (e.g. 404, rate limits, 500)
-    const statusCode = (error as any).statusCode || 500;
+    const statusCode = error.statusCode || 500;
     request.log.error(error);
 
     const isDev = process.env.NODE_ENV !== "production";
@@ -158,9 +167,9 @@ export async function buildApp(): Promise<FastifyInstance> {
           status: "healthy",
           uptime: process.uptime(),
           timestamp: new Date().toISOString(),
-        })
+        }),
       );
-    }
+    },
   );
 
   // Register Domain Modules under /api/v1
@@ -175,9 +184,8 @@ export async function buildApp(): Promise<FastifyInstance> {
       await api.register(adminModule, { prefix: "/admin" });
       await api.register(devRoutes, { prefix: "/dev" });
     },
-    { prefix: "/api/v1" }
+    { prefix: "/api/v1" },
   );
 
   return fastify;
 }
-

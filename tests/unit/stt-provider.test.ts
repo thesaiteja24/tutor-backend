@@ -1,9 +1,10 @@
 import { describe, expect, it } from "bun:test";
+
 import { SarvamSTTProvider } from "@/shared/ai/stt.adapter.ts";
 
 describe("SarvamSTTProvider", () => {
   it("sends WAV audio to Saaras v3 in codemix mode with automatic language detection", async () => {
-    let request: any;
+    let request: unknown;
     const provider = new SarvamSTTProvider({
       transcribe: async (value) => {
         request = value;

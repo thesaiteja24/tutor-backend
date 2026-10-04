@@ -1,13 +1,14 @@
 import type { FastifyPluginAsync } from "fastify";
-import { formatSuccessResponse, formatPaginatedResponse } from "@/shared/utils/response.ts";
+import { z } from "zod";
+
 import { authenticateUser, requireRole } from "@/modules/auth/auth.middleware.ts";
-import { practiceModeService } from "@/modules/practice-modes/practice-mode.services.ts";
 import {
   createPracticeModeSchema,
   listPracticeModesQuerySchema,
   updatePracticeModeSchema,
 } from "@/modules/practice-modes/practice-mode.schemas.ts";
-import { z } from "zod";
+import { practiceModeService } from "@/modules/practice-modes/practice-mode.services.ts";
+import { formatPaginatedResponse,formatSuccessResponse } from "@/shared/utils/response.ts";
 
 const practiceModeIdParamSchema = z.object({
   id: z.string().uuid("Practice Mode ID must be a valid UUID"),
@@ -36,9 +37,9 @@ export const adminPracticeModeRoutes: FastifyPluginAsync = async (fastify) => {
           total: result.total,
           limit: query.limit,
           offset: query.offset,
-        })
+        }),
       );
-    }
+    },
   );
 
   // GET /api/v1/admin/practice-modes/:id
@@ -56,9 +57,9 @@ export const adminPracticeModeRoutes: FastifyPluginAsync = async (fastify) => {
       const { id } = practiceModeIdParamSchema.parse(request.params);
       const mode = await practiceModeService.getPracticeModeById(id);
       return reply.code(200).send(
-        formatSuccessResponse(request, "Practice mode details retrieved successfully", mode)
+        formatSuccessResponse(request, "Practice mode details retrieved successfully", mode),
       );
-    }
+    },
   );
 
   // POST /api/v1/admin/practice-modes
@@ -76,9 +77,9 @@ export const adminPracticeModeRoutes: FastifyPluginAsync = async (fastify) => {
       const input = createPracticeModeSchema.parse(request.body);
       const created = await practiceModeService.createPracticeMode(input);
       return reply.code(201).send(
-        formatSuccessResponse(request, "Practice mode created successfully", created)
+        formatSuccessResponse(request, "Practice mode created successfully", created),
       );
-    }
+    },
   );
 
   // PATCH /api/v1/admin/practice-modes/:id
@@ -97,9 +98,9 @@ export const adminPracticeModeRoutes: FastifyPluginAsync = async (fastify) => {
       const input = updatePracticeModeSchema.parse(request.body);
       const updated = await practiceModeService.updatePracticeMode(id, input);
       return reply.code(200).send(
-        formatSuccessResponse(request, "Practice mode updated successfully", updated)
+        formatSuccessResponse(request, "Practice mode updated successfully", updated),
       );
-    }
+    },
   );
 
   // DELETE /api/v1/admin/practice-modes/:id
@@ -117,8 +118,8 @@ export const adminPracticeModeRoutes: FastifyPluginAsync = async (fastify) => {
       const { id } = practiceModeIdParamSchema.parse(request.params);
       await practiceModeService.deletePracticeMode(id);
       return reply.code(200).send(
-        formatSuccessResponse(request, "Practice mode deleted successfully", { id, deleted: true })
+        formatSuccessResponse(request, "Practice mode deleted successfully", { id, deleted: true }),
       );
-    }
+    },
   );
 };

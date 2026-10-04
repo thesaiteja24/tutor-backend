@@ -5,7 +5,7 @@ export function renderNewLoginAlertEmail(data: {
   loginTime?: string;
 }): { subject: string; html: string; text: string } {
   const timeStr = data.loginTime || new Date().toUTCString();
-  const subject = `New sign-in to your AI English Tutor account`;
+  const subject = "New sign-in to your AI English Tutor account";
   const text = `Hi ${data.displayName},\n\nA new sign-in was detected on your AI English Tutor account.\n\nTime: ${timeStr}\nIP Address: ${data.ipAddress || "Unknown"}\nDevice: ${data.userAgent || "Mobile Application"}\n\nIf this was you, you can ignore this alert.\n\nIf this wasn't you, please reset your password immediately at support@tutor.app.\n\nBest,\nThe AI Tutor Security Team`;
 
   const html = `<!DOCTYPE html>

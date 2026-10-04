@@ -1,4 +1,5 @@
 import { z } from "zod";
+
 import { PASSWORD_ERROR_MESSAGE, PASSWORD_REGEX } from "@/shared/auth/password.ts";
 
 export const registerSchema = z.object({
@@ -78,4 +79,3 @@ export const confirmChangeEmailSchema = z.object({
 });
 
 export type ConfirmChangeEmailInput = z.infer<typeof confirmChangeEmailSchema>;
-

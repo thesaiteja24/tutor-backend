@@ -1,9 +1,11 @@
+import path from "node:path";
+
 import cors from "@fastify/cors";
 import fastifyStatic from "@fastify/static";
 import websocket from "@fastify/websocket";
-import path from "node:path";
 import type { FastifyPluginAsync } from "fastify";
 import fp from "fastify-plugin";
+
 import { databasePlugin } from "./database.plugin.ts";
 import { docsPlugin } from "./docs.plugin.ts";
 import { multipartPlugin } from "./multipart.plugin.ts";

@@ -12,7 +12,7 @@ export class AppError extends Error {
   constructor(
     message: string,
     statusCode: number = 500,
-    errors: ErrorDetail[] = [{ code: "internal_error", message }]
+    errors: ErrorDetail[] = [{ code: "internal_error", message }],
   ) {
     super(message);
     this.name = this.constructor.name;
@@ -27,7 +27,7 @@ export class BadRequestError extends AppError {
     super(
       message,
       400,
-      errors || [{ code: "bad_request", message }]
+      errors || [{ code: "bad_request", message }],
     );
   }
 }
@@ -67,4 +67,3 @@ export class RateLimitError extends AppError {
     super(message, 429, [{ code: "rate_limit_exceeded", message }]);
   }
 }
-

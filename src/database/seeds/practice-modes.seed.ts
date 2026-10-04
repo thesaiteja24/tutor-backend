@@ -1,4 +1,5 @@
 import { eq } from "drizzle-orm";
+
 import { db } from "@/database/index.ts";
 import { practiceModes } from "@/database/schema/practice-modes.ts";
 

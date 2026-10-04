@@ -1,8 +1,9 @@
-import { and, count, desc, eq, gte, isNull, sql } from "drizzle-orm";
+import { and, count, desc, eq, gte, isNull } from "drizzle-orm";
+
 import { db } from "@/database/index.ts";
-import { users } from "@/database/schema/users.ts";
 import { conversations } from "@/database/schema/conversations.ts";
 import { messages } from "@/database/schema/messages.ts";
+import { users } from "@/database/schema/users.ts";
 
 export class AdminAnalyticsRepository {
   async getUserStats() {

@@ -1,7 +1,8 @@
 import { NotFoundError } from "@/shared/errors/index.ts";
+
 import {
-  adminUsersRepository,
   type AdminUsersRepository,
+  adminUsersRepository,
 } from "./admin-users.repositories.ts";
 import type {
   ListAdminUsersQuery,
@@ -12,7 +13,7 @@ import type {
 export class AdminUsersService {
   constructor(private readonly repo: AdminUsersRepository = adminUsersRepository) {}
 
-  private sanitizeUser(user: any) {
+  private sanitizeUser(user: { id: string; email: string; displayName: string; role: "superadmin" | "org_admin" | "user"; orgId?: string | null; nativeLanguage: string; englishLevel: string; isEmailVerified: boolean; authProvider: string; isActive: boolean; lastLoginAt?: string | Date | null; createdAt: string | Date; updatedAt: string | Date }) {
     return {
       id: user.id,
       email: user.email,

@@ -1,8 +1,10 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
+
 import { env } from "@/config/index.ts";
-import * as relations from "./relations.ts";
+
 import * as schema from "./schema/index.ts";
+import * as relations from "./relations.ts";
 
 export const fullSchema = {
   ...schema,
@@ -19,5 +21,5 @@ export const queryClient = postgres(env.DATABASE_URL, {
 export const db = drizzle(queryClient, { schema: fullSchema });
 
 export type Database = typeof db;
-export * from "./schema/index.ts";
 export * from "./relations.ts";
+export * from "./schema/index.ts";

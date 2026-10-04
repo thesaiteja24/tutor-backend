@@ -1,8 +1,9 @@
 import { index, pgTable, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 import { uuidv7 } from "uuidv7";
-import { users } from "./users.ts";
+
 import { personas } from "./personas.ts";
 import { practiceModes } from "./practice-modes.ts";
+import { users } from "./users.ts";
 
 export const conversations = pgTable(
   "conversations",
@@ -29,7 +30,7 @@ export const conversations = pgTable(
     index("conversations_persona_id_idx").on(table.personaId),
     index("conversations_practice_mode_id_idx").on(table.practiceModeId),
     index("conversations_status_idx").on(table.status),
-  ]
+  ],
 );
 
 export type Conversation = typeof conversations.$inferSelect;

@@ -1,8 +1,9 @@
+import { desc, isNotNull } from "drizzle-orm";
 import type { FastifyPluginAsync } from "fastify";
-import { devLogger, type LogLevel } from "@/shared/utils/dev-logger.ts";
+
 import { db } from "@/database/index.ts";
 import { messages } from "@/database/schema/messages.ts";
-import { desc, isNotNull } from "drizzle-orm";
+import { devLogger, type LogLevel } from "@/shared/utils/dev-logger.ts";
 import { formatSuccessResponse } from "@/shared/utils/response.ts";
 
 export const devRoutes: FastifyPluginAsync = async (fastify) => {
@@ -16,8 +17,8 @@ export const devRoutes: FastifyPluginAsync = async (fastify) => {
       level?: LogLevel;
       tag?: string;
       message: string;
-      data?: any;
-      error?: any;
+      data?: unknown;
+      error?: unknown;
     };
   }>("/logs", async (request, reply) => {
     const { level, tag, message, data, error } = request.body || {};
@@ -87,7 +88,7 @@ export const devRoutes: FastifyPluginAsync = async (fastify) => {
     };
 
     return reply.code(200).send(
-      formatSuccessResponse(request, "Telemetry metrics retrieved successfully", telemetry)
+      formatSuccessResponse(request, "Telemetry metrics retrieved successfully", telemetry),
     );
   });
 };

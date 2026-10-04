@@ -1,6 +1,11 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { eq } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
+
 import { buildApp } from "@/app.ts";
+import { db } from "@/database/index.ts";
+import { personas } from "@/database/schema/personas.ts";
+import { practiceModes } from "@/database/schema/practice-modes.ts";
 
 describe("Superadmin Studio & User Management Integration Suite", () => {
   let app: FastifyInstance;
@@ -39,6 +44,12 @@ describe("Superadmin Studio & User Management Integration Suite", () => {
   });
 
   afterAll(async () => {
+    if (createdPersonaId) {
+      await db.delete(personas).where(eq(personas.id, createdPersonaId));
+    }
+    if (createdPracticeModeId) {
+      await db.delete(practiceModes).where(eq(practiceModes.id, createdPracticeModeId));
+    }
     await app.close();
   });
 

@@ -1,8 +1,8 @@
 import jwt from "jsonwebtoken";
-import { env } from "@/config/index.ts";
-import { UnauthorizedError } from "@/shared/errors/index.ts";
 
+import { env } from "@/config/index.ts";
 import type { UserRole } from "@/database/schema/users.ts";
+import { UnauthorizedError } from "@/shared/errors/index.ts";
 
 export interface UserJwtPayload {
   userId: string;
@@ -19,7 +19,7 @@ export interface UserJwtPayload {
  */
 export function signJwtToken(payload: UserJwtPayload): string {
   return jwt.sign(payload, env.JWT_SECRET, {
-    expiresIn: (env.JWT_EXPIRES_IN as any) || "30d",
+    expiresIn: (env.JWT_EXPIRES_IN as jwt.SignOptions["expiresIn"]) || "30d",
   });
 }
 
@@ -38,8 +38,8 @@ export function verifyJwtToken(token: string): UserJwtPayload {
       nativeLanguage: decoded.nativeLanguage,
       englishLevel: decoded.englishLevel,
     };
-  } catch (err: any) {
-    if (err.name === "TokenExpiredError") {
+  } catch (err: unknown) {
+    if (err instanceof Error && err.name === "TokenExpiredError") {
       throw new UnauthorizedError("Authentication token has expired. Please sign in again.");
     }
     throw new UnauthorizedError("Invalid authentication token.");

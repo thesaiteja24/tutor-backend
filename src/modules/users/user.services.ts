@@ -1,5 +1,7 @@
+import type { User } from "@/database/schema/users.ts";
 import { NotFoundError } from "@/shared/errors/index.ts";
-import { userRepository, type UserRepository } from "./user.repositories.ts";
+
+import { type UserRepository,userRepository } from "./user.repositories.ts";
 
 export class UserService {
   constructor(private readonly repo: UserRepository = userRepository) {}
@@ -20,9 +22,9 @@ export class UserService {
     return user;
   }
 
-  async updateUser(id: string, data: { displayName?: string; nativeLanguage?: string; englishLevel?: string }) {
+  async updateUser(id: string, data: { displayName?: string; nativeLanguage?: string; englishLevel?: User["englishLevel"] }) {
     await this.getUserById(id);
-    const updated = await this.repo.update(id, data as any);
+    const updated = await this.repo.update(id, data);
     if (!updated) {
       throw new NotFoundError(`Failed to update user with ID '${id}'`);
     }

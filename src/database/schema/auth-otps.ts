@@ -18,7 +18,7 @@ export const authOtps = pgTable(
   (table) => [
     index("auth_otps_email_purpose_idx").on(table.email, table.purpose, table.isUsed),
     index("auth_otps_expires_at_idx").on(table.expiresAt),
-  ]
+  ],
 );
 
 export type AuthOtp = typeof authOtps.$inferSelect;

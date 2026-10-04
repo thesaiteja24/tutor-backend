@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import type { FastifyInstance } from "fastify";
+
 import { buildApp } from "@/app.ts";
 
 describe("Superadmin Analytics & AI Cost Engine Integration Suite", () => {
@@ -111,7 +112,7 @@ describe("Superadmin Analytics & AI Cost Engine Integration Suite", () => {
     expect(Array.isArray(json.data.breakdown)).toBe(true);
     expect(json.data.breakdown.length).toBe(3); // STT, TTS, LLM
 
-    const components = json.data.breakdown.map((b: any) => b.component);
+    const components = (json.data.breakdown as Array<{ component: string }>).map((b) => b.component);
     expect(components).toContain("Speech-to-Text (STT)");
     expect(components).toContain("Text-to-Speech (TTS)");
     expect(components).toContain("LLM Reasoning & Turn Synthesis");

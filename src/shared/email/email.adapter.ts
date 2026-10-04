@@ -1,13 +1,15 @@
 import nodemailer, { type Transporter } from "nodemailer";
+
 import { env } from "@/config/index.ts";
 import { devLogger } from "@/shared/utils/dev-logger.ts";
-import { renderVerificationOtpEmail } from "./templates/verification-otp.template.ts";
-import { renderWelcomeEmail } from "./templates/welcome.template.ts";
-import { renderPasswordResetOtpEmail } from "./templates/password-reset-otp.template.ts";
-import { renderPasswordChangedEmail } from "./templates/password-changed.template.ts";
-import { renderNewLoginAlertEmail } from "./templates/new-login-alert.template.ts";
+
 import { renderEmailChangeOtpEmail } from "./templates/email-change-otp.template.ts";
 import { renderEmailChangedAlertEmail } from "./templates/email-changed-alert.template.ts";
+import { renderNewLoginAlertEmail } from "./templates/new-login-alert.template.ts";
+import { renderPasswordChangedEmail } from "./templates/password-changed.template.ts";
+import { renderPasswordResetOtpEmail } from "./templates/password-reset-otp.template.ts";
+import { renderVerificationOtpEmail } from "./templates/verification-otp.template.ts";
+import { renderWelcomeEmail } from "./templates/welcome.template.ts";
 
 export interface EmailOptions {
   to: string;
@@ -51,8 +53,9 @@ export class EmailService {
         devLogger.info("EmailService:Mock", `[EMAIL TO ${options.to}] Subject: "${options.subject}"\n${options.text}`);
       }
       return true;
-    } catch (err: any) {
-      devLogger.error("EmailService:Error", `Failed to send email to ${options.to}: ${err.message}`, err);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      devLogger.error("EmailService:Error", `Failed to send email to ${options.to}: ${message}`, err);
       return false;
     }
   }
@@ -100,7 +103,7 @@ export class EmailService {
   async sendNewLoginAlert(
     email: string,
     displayName: string,
-    meta?: { ipAddress?: string; userAgent?: string }
+    meta?: { ipAddress?: string; userAgent?: string },
   ): Promise<boolean> {
     const rendered = renderNewLoginAlertEmail({
       displayName,
@@ -129,7 +132,7 @@ export class EmailService {
   async sendEmailChangedAlert(
     oldEmail: string,
     newEmail: string,
-    displayName: string
+    displayName: string,
   ): Promise<boolean> {
     const rendered = renderEmailChangedAlertEmail({
       displayName,

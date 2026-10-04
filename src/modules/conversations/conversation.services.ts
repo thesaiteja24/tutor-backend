@@ -1,29 +1,31 @@
 import fs from "node:fs";
 import path from "node:path";
+
+import type { TranscriptMetadata, TurnFailureData } from "@/database/schema/messages.ts";
 import { personaService } from "@/modules/personas/index.ts";
 import { practiceModeService } from "@/modules/practice-modes/index.ts";
 import { userService } from "@/modules/users/index.ts";
-import { NotFoundError } from "@/shared/errors/index.ts";
-import type { TranscriptMetadata, TurnFailureData } from "@/database/schema/messages.ts";
-import { conversationRepository, type ConversationRepository } from "./conversation.repositories.ts";
-import type {
-  CreateConversationInput,
-  ListConversationsQuery,
-  UpdateConversationInput,
-} from "./conversation.schemas.ts";
+import { createLLMProvider, type LLMProvider } from "@/shared/ai/llm.adapter.ts";
+import { createTTSProvider, type TTSProvider } from "@/shared/ai/tts.adapter.ts";
 import {
   parseTutorTurnResponse,
   toPublicTutorTurn,
   toTtsSpeechText,
 } from "@/shared/ai/tutor.helpers.ts";
-import { createLLMProvider, type LLMProvider } from "@/shared/ai/llm.adapter.ts";
-import { createTTSProvider, type TTSProvider } from "@/shared/ai/tts.adapter.ts";
+import { NotFoundError } from "@/shared/errors/index.ts";
+
+import { type ConversationRepository,conversationRepository } from "./conversation.repositories.ts";
+import type {
+  CreateConversationInput,
+  ListConversationsQuery,
+  UpdateConversationInput,
+} from "./conversation.schemas.ts";
 
 export class ConversationService {
   constructor(
     private readonly repo: ConversationRepository = conversationRepository,
     private readonly llm: LLMProvider = createLLMProvider(),
-    private readonly tts: TTSProvider = createTTSProvider()
+    private readonly tts: TTSProvider = createTTSProvider(),
   ) {}
 
   async listConversations(query: ListConversationsQuery) {
@@ -45,7 +47,7 @@ export class ConversationService {
     }
     return {
       ...conversation,
-      messages: conversation.messages.map((message: any) => {
+      messages: conversation.messages.map((message) => {
         if (message.sender !== "assistant" || !message.responseData) return message;
         try {
           return { ...message, turn: toPublicTutorTurn(parseTutorTurnResponse(message.responseData)) };
@@ -169,7 +171,7 @@ export class ConversationService {
     sender: "user" | "assistant";
     content: string;
     audioUrl?: string | null;
-    latencyMetrics?: any;
+    latencyMetrics?: Record<string, unknown> | null;
   }) {
     return this.repo.addMessage({
       conversationId: data.conversationId,

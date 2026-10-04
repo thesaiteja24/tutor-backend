@@ -1,22 +1,35 @@
 import { and, asc, count, desc, eq, isNull, type SQL } from "drizzle-orm";
 import { uuidv7 } from "uuidv7";
+
 import { db } from "@/database/index.ts";
 import {
-  conversations,
   type Conversation,
+  conversations,
   type NewConversation,
 } from "@/database/schema/conversations.ts";
 import {
-  messages,
   type Message,
+  messages,
   type NewMessage,
   type TranscriptMetadata,
   type TurnFailureData,
 } from "@/database/schema/messages.ts";
+import type { Persona } from "@/database/schema/personas.ts";
+import type { PracticeMode } from "@/database/schema/practice-modes.ts";
+
 import type { ListConversationsQuery } from "./conversation.schemas.ts";
 
+export type ConversationWithRelations = Conversation & {
+  persona: Persona;
+  practiceMode: PracticeMode | null;
+};
+
+export type ConversationWithHistory = ConversationWithRelations & {
+  messages: Message[];
+};
+
 export class ConversationRepository {
-  async findMany(query: ListConversationsQuery): Promise<{ items: any[]; total: number }> {
+  async findMany(query: ListConversationsQuery): Promise<{ items: Array<typeof conversations.$inferSelect>; total: number }> {
     const conditions: SQL[] = [isNull(conversations.deletedAt)];
 
     if (query.status && query.status !== "all") {
@@ -55,7 +68,7 @@ export class ConversationRepository {
     };
   }
 
-  async findById(id: string): Promise<any | null> {
+  async findById(id: string): Promise<ConversationWithRelations | null> {
     const row = await db.query.conversations.findMany({
       where: and(eq(conversations.id, id), isNull(conversations.deletedAt)),
       with: {
@@ -65,10 +78,10 @@ export class ConversationRepository {
       limit: 1,
     });
 
-    return row[0] || null;
+    return (row[0] as unknown as ConversationWithRelations) || null;
   }
 
-  async findWithMessages(id: string, messageLimit: number = 50): Promise<any | null> {
+  async findWithMessages(id: string, messageLimit: number = 50): Promise<ConversationWithHistory | null> {
     const conversation = await this.findById(id);
     if (!conversation) return null;
 

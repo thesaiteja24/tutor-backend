@@ -4,7 +4,7 @@ export function renderEmailChangedAlertEmail(data: {
   changedAt?: string;
 }): { subject: string; html: string; text: string } {
   const timeStr = data.changedAt || new Date().toUTCString();
-  const subject = `Your AI English Tutor email address was updated`;
+  const subject = "Your AI English Tutor email address was updated";
   const text = `Hi ${data.displayName},\n\nThe email address associated with your AI English Tutor account has been successfully changed to ${data.newEmail} on ${timeStr}.\n\nIf you made this change, no further action is needed.\n\nIf you did NOT authorize this change, please contact support@tutor.app immediately to secure your account.\n\nBest,\nThe AI English Tutor Security Team`;
 
   const html = `<!DOCTYPE html>

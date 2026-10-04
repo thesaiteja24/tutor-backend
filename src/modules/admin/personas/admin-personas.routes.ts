@@ -1,13 +1,14 @@
 import type { FastifyPluginAsync } from "fastify";
-import { formatSuccessResponse, formatPaginatedResponse } from "@/shared/utils/response.ts";
+import { z } from "zod";
+
 import { authenticateUser, requireRole } from "@/modules/auth/auth.middleware.ts";
-import { personaService } from "@/modules/personas/persona.services.ts";
 import {
   createPersonaSchema,
   listPersonasQuerySchema,
   updatePersonaSchema,
 } from "@/modules/personas/persona.schemas.ts";
-import { z } from "zod";
+import { personaService } from "@/modules/personas/persona.services.ts";
+import { formatPaginatedResponse,formatSuccessResponse } from "@/shared/utils/response.ts";
 
 const personaIdParamSchema = z.object({
   id: z.string().uuid("Persona ID must be a valid UUID"),
@@ -36,9 +37,9 @@ export const adminPersonaRoutes: FastifyPluginAsync = async (fastify) => {
           total: result.total,
           limit: query.limit,
           offset: query.offset,
-        })
+        }),
       );
-    }
+    },
   );
 
   // GET /api/v1/admin/personas/:id
@@ -56,9 +57,9 @@ export const adminPersonaRoutes: FastifyPluginAsync = async (fastify) => {
       const { id } = personaIdParamSchema.parse(request.params);
       const persona = await personaService.getPersonaById(id);
       return reply.code(200).send(
-        formatSuccessResponse(request, "Persona details retrieved successfully", persona)
+        formatSuccessResponse(request, "Persona details retrieved successfully", persona),
       );
-    }
+    },
   );
 
   // POST /api/v1/admin/personas
@@ -76,9 +77,9 @@ export const adminPersonaRoutes: FastifyPluginAsync = async (fastify) => {
       const input = createPersonaSchema.parse(request.body);
       const created = await personaService.createPersona(input);
       return reply.code(201).send(
-        formatSuccessResponse(request, "Persona created successfully", created)
+        formatSuccessResponse(request, "Persona created successfully", created),
       );
-    }
+    },
   );
 
   // PATCH /api/v1/admin/personas/:id
@@ -97,9 +98,9 @@ export const adminPersonaRoutes: FastifyPluginAsync = async (fastify) => {
       const input = updatePersonaSchema.parse(request.body);
       const updated = await personaService.updatePersona(id, input);
       return reply.code(200).send(
-        formatSuccessResponse(request, "Persona updated successfully", updated)
+        formatSuccessResponse(request, "Persona updated successfully", updated),
       );
-    }
+    },
   );
 
   // DELETE /api/v1/admin/personas/:id
@@ -117,8 +118,8 @@ export const adminPersonaRoutes: FastifyPluginAsync = async (fastify) => {
       const { id } = personaIdParamSchema.parse(request.params);
       await personaService.deletePersona(id);
       return reply.code(200).send(
-        formatSuccessResponse(request, "Persona deleted successfully", { id, deleted: true })
+        formatSuccessResponse(request, "Persona deleted successfully", { id, deleted: true }),
       );
-    }
+    },
   );
 };

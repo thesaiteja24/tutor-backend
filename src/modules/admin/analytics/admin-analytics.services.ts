@@ -1,6 +1,6 @@
 import {
-  adminAnalyticsRepository,
   type AdminAnalyticsRepository,
+  adminAnalyticsRepository,
 } from "./admin-analytics.repositories.ts";
 
 // Standard Industry & Sarvam AI / Groq Pricing Constants
@@ -77,7 +77,7 @@ export class AdminAnalyticsService {
     const sttCostInr = Number((speakingMinutes * PRICING_CONSTANTS.STT_RATE_PER_MIN_INR).toFixed(2));
     const ttsCostInr = Number((ttsMinutes * PRICING_CONSTANTS.TTS_RATE_PER_MIN_INR).toFixed(2));
     const llmCostInr = Number(
-      ((totalEstimatedLlmTokens / 1000) * ((PRICING_CONSTANTS.LLM_INPUT_RATE_PER_1K_INR + PRICING_CONSTANTS.LLM_OUTPUT_RATE_PER_1K_INR) / 2)).toFixed(2)
+      ((totalEstimatedLlmTokens / 1000) * ((PRICING_CONSTANTS.LLM_INPUT_RATE_PER_1K_INR + PRICING_CONSTANTS.LLM_OUTPUT_RATE_PER_1K_INR) / 2)).toFixed(2),
     );
 
     const totalSpendInr = Number((sttCostInr + ttsCostInr + llmCostInr).toFixed(2));

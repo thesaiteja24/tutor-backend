@@ -1,4 +1,5 @@
 import { SarvamAIClient } from "sarvamai";
+
 import { env } from "@/config/index.ts";
 import { devLogger } from "@/shared/utils/dev-logger.ts";
 
@@ -61,7 +62,7 @@ export class SarvamSTTProvider implements STTProvider {
   async transcribe(
     audioBuffer: Buffer,
     mimeType: string,
-    _options?: STTOptions
+    _options?: STTOptions,
   ): Promise<STTTranscriptionResult> {
     if (!audioBuffer.length) {
       throw new Error("Cannot transcribe an empty audio buffer");

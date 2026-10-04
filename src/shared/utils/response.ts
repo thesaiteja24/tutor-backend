@@ -1,11 +1,12 @@
 import type { FastifyRequest } from "fastify";
 import { uuidv7 } from "uuidv7";
+
 import type { PaginatedMeta, ResponseMeta } from "../schemas/response.schemas.ts";
 
 export function formatSuccessResponse<T>(
   request: FastifyRequest,
   message: string,
-  data: T
+  data: T,
 ) {
   const meta: ResponseMeta = {
     timestamp: new Date().toISOString(),
@@ -31,7 +32,7 @@ export function formatPaginatedResponse<T>(
     hasMore?: boolean;
     prevCursor?: string;
     nextCursor?: string;
-  }
+  },
 ) {
   const meta: PaginatedMeta = {
     timestamp: new Date().toISOString(),

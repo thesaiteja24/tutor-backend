@@ -1,7 +1,9 @@
 import type { FastifyPluginAsync } from "fastify";
+
 import { voiceTutorService } from "@/modules/voice-tutor/voice-tutor.services.ts";
 import { BadRequestError } from "@/shared/errors/index.ts";
 import { formatSuccessResponse } from "@/shared/utils/response.ts";
+
 import {
   textInteractBodySchema,
   voiceInteractParamsSchema,
@@ -146,11 +148,11 @@ export const voiceTutorRoutes: FastifyPluginAsync = async (fastify) => {
         const result = await voiceTutorService.processPushToTalk(
           conversationId,
           audioBuffer,
-          mimeType
+          mimeType,
         );
 
         return reply.code(200).send(
-          formatSuccessResponse(request, "Voice interaction processed successfully", result)
+          formatSuccessResponse(request, "Voice interaction processed successfully", result),
         );
       }
 
@@ -159,13 +161,13 @@ export const voiceTutorRoutes: FastifyPluginAsync = async (fastify) => {
       const result = await voiceTutorService.processTextInteraction(
         conversationId,
         body.text ?? `Selected option: ${body.optionLabel ?? ""}`,
-        { overrideVoiceId: body.voiceId }
+        { overrideVoiceId: body.voiceId },
       );
 
       return reply.code(200).send(
-        formatSuccessResponse(request, "Voice interaction processed successfully", result)
+        formatSuccessResponse(request, "Voice interaction processed successfully", result),
       );
-    }
+    },
   );
 
   // POST /api/v1/voice-tutor/conversations/:conversationId/text-interact (Direct Text Testing)
@@ -206,13 +208,13 @@ export const voiceTutorRoutes: FastifyPluginAsync = async (fastify) => {
       const result = await voiceTutorService.processTextInteraction(
         conversationId,
         body.text ?? `Selected option: ${body.optionLabel ?? ""}`,
-        { overrideVoiceId: body.voiceId }
+        { overrideVoiceId: body.voiceId },
       );
 
       return reply.code(200).send(
-        formatSuccessResponse(request, "Interaction completed successfully", result)
+        formatSuccessResponse(request, "Interaction completed successfully", result),
       );
-    }
+    },
   );
 
   // GET /api/v1/voice-tutor/conversations/:conversationId/ws (Real-Time Bidirectional Voice & Streaming WS Gateway)
@@ -227,7 +229,7 @@ export const voiceTutorRoutes: FastifyPluginAsync = async (fastify) => {
 
       socket.on("message", async (rawMessage: Buffer | string) => {
         try {
-          let payload: any = null;
+          let payload: { type?: string; audioBase64?: string; text?: string; voiceId?: string } | null = null;
           let isBinaryAudio = false;
           let audioBuffer: Buffer | null = null;
 
@@ -295,7 +297,7 @@ export const voiceTutorRoutes: FastifyPluginAsync = async (fastify) => {
                   audioBase64: chunk.audioBase64,
                   format: chunk.format,
                   text: chunk.text,
-                })
+                }),
               );
             },
           });
@@ -309,19 +311,24 @@ export const voiceTutorRoutes: FastifyPluginAsync = async (fastify) => {
                 userMessageId: result.userMessageId,
                 assistantMessageId: result.assistantMessageId,
                 latencyMetrics: result.latencyMetrics,
-              })
+              }),
             );
           }
-        } catch (err: any) {
+        } catch (err: unknown) {
+          const errCode = (err && typeof err === "object" && "code" in err && typeof (err as { code: unknown }).code === "string")
+            ? (err as { code: string }).code
+            : "INTERACTION_ERROR";
+          const errMessage = err instanceof Error ? err.message : "Failed to process interaction";
+
           socket.send(
             JSON.stringify({
               type: "error",
-              code: err.code || "INTERACTION_ERROR",
-              message: err.message || "Failed to process interaction",
-            })
+              code: errCode,
+              message: errMessage,
+            }),
           );
         }
       });
-    }
+    },
   );
 };

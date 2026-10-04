@@ -1,6 +1,8 @@
 import { and, asc, count, eq, isNull } from "drizzle-orm";
+
 import { db } from "@/database/index.ts";
-import { practiceModes, type NewPracticeMode, type PracticeMode } from "@/database/schema/practice-modes.ts";
+import { type NewPracticeMode, type PracticeMode,practiceModes } from "@/database/schema/practice-modes.ts";
+
 import type { ListPracticeModesQuery } from "./practice-mode.schemas.ts";
 
 export class PracticeModeRepository {
@@ -96,4 +98,3 @@ export class PracticeModeRepository {
 }
 
 export const practiceModeRepository = new PracticeModeRepository();
-

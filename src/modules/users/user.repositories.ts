@@ -1,8 +1,9 @@
 import { and, desc, eq, inArray, isNull } from "drizzle-orm";
+
 import { db } from "@/database/index.ts";
-import { users, type User } from "@/database/schema/users.ts";
 import { conversations } from "@/database/schema/conversations.ts";
 import { messages } from "@/database/schema/messages.ts";
+import { type User,users } from "@/database/schema/users.ts";
 import { DEFAULT_USER_ID } from "@/database/seeds/default-user.seed.ts";
 
 export class UserRepository {
@@ -136,7 +137,7 @@ export class UserRepository {
       where: and(
         inArray(messages.conversationId, conversationIds),
         eq(messages.status, "completed"),
-        isNull(messages.deletedAt)
+        isNull(messages.deletedAt),
       ),
       orderBy: [desc(messages.createdAt)],
     });
@@ -177,7 +178,7 @@ export class UserRepository {
 
     // Streak calculation (consecutive days)
     let currentStreak = 0;
-    let checkDate = new Date();
+    const checkDate = new Date();
     // If no turns today yet, check starting from yesterday
     const todayHasTurns = activeDatesSet.has(todayStr);
     if (!todayHasTurns) {
@@ -209,11 +210,11 @@ export class UserRepository {
     let recastsCount = 0;
 
     for (const m of assistantMessages) {
-      const res = m.responseData as any;
+      const res = m.responseData as Record<string, unknown> | null;
       const terms: string[] = [
-        ...(res?.learningState?.introducedTerms || []),
-        ...(res?.turn?.learningState?.introducedTerms || []),
-        ...(res?.feedback?.vocabularySuggestions || []),
+        ...(((res?.learningState as Record<string, unknown> | undefined)?.introducedTerms as string[]) || []),
+        ...((((res?.turn as Record<string, unknown> | undefined)?.learningState as Record<string, unknown> | undefined)?.introducedTerms as string[]) || []),
+        ...(((res?.feedback as Record<string, unknown> | undefined)?.vocabularySuggestions as string[]) || []),
       ];
 
       for (const term of terms) {
@@ -234,7 +235,12 @@ export class UserRepository {
         }
       }
 
-      if (res?.correction?.naturalRewrite || res?.turn?.correction?.naturalRewrite || res?.feedback?.grammarCorrections?.length) {
+      const hasCorrection = Boolean(
+        (res?.correction as Record<string, unknown> | undefined)?.naturalRewrite ||
+        ((res?.turn as Record<string, unknown> | undefined)?.correction as Record<string, unknown> | undefined)?.naturalRewrite ||
+        ((res?.feedback as Record<string, unknown> | undefined)?.grammarCorrections as unknown[] | undefined)?.length,
+      );
+      if (hasCorrection) {
         recastsCount++;
       }
     }

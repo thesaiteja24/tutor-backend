@@ -1,6 +1,8 @@
 import { and, asc, count, eq, isNull } from "drizzle-orm";
+
 import { db } from "@/database/index.ts";
-import { personas, type NewPersona, type Persona } from "@/database/schema/personas.ts";
+import { type NewPersona, type Persona,personas } from "@/database/schema/personas.ts";
+
 import type { ListPersonasQuery } from "./persona.schemas.ts";
 
 export class PersonaRepository {
@@ -98,4 +100,3 @@ export class PersonaRepository {
 }
 
 export const personaRepository = new PersonaRepository();
-

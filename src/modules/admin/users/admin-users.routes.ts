@@ -1,13 +1,15 @@
 import type { FastifyPluginAsync } from "fastify";
-import { formatSuccessResponse, formatPaginatedResponse } from "@/shared/utils/response.ts";
+import { z } from "zod";
+
 import { authenticateUser, requireRole } from "@/modules/auth/auth.middleware.ts";
-import { adminUsersService } from "./admin-users.services.ts";
+import { formatPaginatedResponse,formatSuccessResponse } from "@/shared/utils/response.ts";
+
 import {
   listAdminUsersQuerySchema,
   updateAdminUserRoleSchema,
   updateAdminUserStatusSchema,
 } from "./admin-users.schemas.ts";
-import { z } from "zod";
+import { adminUsersService } from "./admin-users.services.ts";
 
 const userIdParamSchema = z.object({
   id: z.string().uuid("User ID must be a valid UUID"),
@@ -36,9 +38,9 @@ export const adminUserRoutes: FastifyPluginAsync = async (fastify) => {
           total: result.total,
           limit: query.limit,
           offset: query.offset,
-        })
+        }),
       );
-    }
+    },
   );
 
   // GET /api/v1/admin/users/:id
@@ -56,9 +58,9 @@ export const adminUserRoutes: FastifyPluginAsync = async (fastify) => {
       const { id } = userIdParamSchema.parse(request.params);
       const user = await adminUsersService.getUserById(id);
       return reply.code(200).send(
-        formatSuccessResponse(request, "User account retrieved successfully", user)
+        formatSuccessResponse(request, "User account retrieved successfully", user),
       );
-    }
+    },
   );
 
   // PATCH /api/v1/admin/users/:id/role
@@ -77,9 +79,9 @@ export const adminUserRoutes: FastifyPluginAsync = async (fastify) => {
       const input = updateAdminUserRoleSchema.parse(request.body);
       const updated = await adminUsersService.updateUserRole(id, input);
       return reply.code(200).send(
-        formatSuccessResponse(request, "User role updated successfully", updated)
+        formatSuccessResponse(request, "User role updated successfully", updated),
       );
-    }
+    },
   );
 
   // PATCH /api/v1/admin/users/:id/status
@@ -98,8 +100,8 @@ export const adminUserRoutes: FastifyPluginAsync = async (fastify) => {
       const input = updateAdminUserStatusSchema.parse(request.body);
       const updated = await adminUsersService.updateUserStatus(id, input);
       return reply.code(200).send(
-        formatSuccessResponse(request, "User status updated successfully", updated)
+        formatSuccessResponse(request, "User status updated successfully", updated),
       );
-    }
+    },
   );
 };

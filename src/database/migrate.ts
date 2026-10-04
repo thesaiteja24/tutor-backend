@@ -1,4 +1,5 @@
 import { migrate } from "drizzle-orm/postgres-js/migrator";
+
 import { db, queryClient } from "@/database/index.ts";
 
 async function runMigrations() {

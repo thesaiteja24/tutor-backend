@@ -2,6 +2,7 @@ import rateLimit from "@fastify/rate-limit";
 import type { FastifyPluginAsync } from "fastify";
 import fp from "fastify-plugin";
 import { uuidv7 } from "uuidv7";
+
 import { env } from "@/config/index.ts";
 
 const rateLimitPluginAsync: FastifyPluginAsync = async (fastify) => {

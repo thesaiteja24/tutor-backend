@@ -1,9 +1,10 @@
 import { describe, expect, it } from "bun:test";
+
 import { SarvamTTSProvider } from "@/shared/ai/tts.adapter.ts";
 
 describe("SarvamTTSProvider", () => {
   it("sends one validated speech request to Bulbul v3", async () => {
-    let request: any;
+    let request: unknown;
     const audio = Buffer.from("wav-audio").toString("base64");
     const provider = new SarvamTTSProvider({
       synthesize: async (value) => {

@@ -1,5 +1,7 @@
 import type { FastifyPluginAsync } from "fastify";
+
 import { formatSuccessResponse } from "@/shared/utils/response.ts";
+
 import { getUserParamsSchema, updateUserSchema } from "./user.schemas.ts";
 import { userService } from "./user.services.ts";
 
@@ -49,9 +51,9 @@ export const userRoutes: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       const user = await userService.getDefaultUser();
       return reply.code(200).send(
-        formatSuccessResponse(request, "User profile retrieved successfully", user)
+        formatSuccessResponse(request, "User profile retrieved successfully", user),
       );
-    }
+    },
   );
 
   // GET /api/v1/users/me/analytics -> Aggregate user analytics
@@ -85,9 +87,9 @@ export const userRoutes: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       const analytics = await userService.getUserAnalytics();
       return reply.code(200).send(
-        formatSuccessResponse(request, "User analytics retrieved successfully", analytics)
+        formatSuccessResponse(request, "User analytics retrieved successfully", analytics),
       );
-    }
+    },
   );
 
   // PATCH /api/v1/users/me -> Update default user profile (native language, english level)
@@ -131,9 +133,9 @@ export const userRoutes: FastifyPluginAsync = async (fastify) => {
       const body = updateUserSchema.parse(request.body);
       const updated = await userService.updateUser(defaultUser.id, body);
       return reply.code(200).send(
-        formatSuccessResponse(request, "User profile updated successfully", updated)
+        formatSuccessResponse(request, "User profile updated successfully", updated),
       );
-    }
+    },
   );
 
   // GET /api/v1/users/:id
@@ -217,9 +219,9 @@ export const userRoutes: FastifyPluginAsync = async (fastify) => {
       const { id } = getUserParamsSchema.parse(request.params);
       const user = await userService.getUserById(id);
       return reply.code(200).send(
-        formatSuccessResponse(request, "User profile retrieved successfully", user)
+        formatSuccessResponse(request, "User profile retrieved successfully", user),
       );
-    }
+    },
   );
 
   // PATCH /api/v1/users/:id
@@ -270,8 +272,8 @@ export const userRoutes: FastifyPluginAsync = async (fastify) => {
       const body = updateUserSchema.parse(request.body);
       const updated = await userService.updateUser(id, body);
       return reply.code(200).send(
-        formatSuccessResponse(request, "User profile updated successfully", updated)
+        formatSuccessResponse(request, "User profile updated successfully", updated),
       );
-    }
+    },
   );
 };

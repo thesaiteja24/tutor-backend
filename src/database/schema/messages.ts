@@ -1,5 +1,6 @@
 import { index, jsonb, pgTable, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 import { uuidv7 } from "uuidv7";
+
 import { conversations } from "./conversations.ts";
 
 export interface LatencyMetrics {
@@ -67,7 +68,7 @@ export const messages = pgTable(
     index("messages_created_at_idx").on(table.createdAt),
     index("messages_turn_id_idx").on(table.turnId),
     index("messages_conversation_status_created_at_idx").on(table.conversationId, table.status, table.createdAt),
-  ]
+  ],
 );
 
 export type Message = typeof messages.$inferSelect;

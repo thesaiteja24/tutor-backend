@@ -1,6 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 
+import { getErrorMessage } from "./errors.js";
+
 const LOGS_DIR = path.resolve(process.cwd(), "logs");
 
 // Ensure logs directory exists in development
@@ -17,7 +19,7 @@ export interface LogEntry {
   level: LogLevel;
   tag: string;
   message: string;
-  data?: any;
+  data?: unknown;
   error?: {
     name?: string;
     message?: string;
@@ -40,7 +42,7 @@ class DevLogger {
     }
   }
 
-  private format(level: LogLevel, tag: string, message: string, data?: any, err?: any): string {
+  private format(level: LogLevel, tag: string, message: string, data?: unknown, err?: unknown): string {
     const timestamp = new Date().toISOString();
     let entry = `[${timestamp}] [${level}] [${tag}] ${message}`;
 
@@ -49,13 +51,14 @@ class DevLogger {
         const serialized = typeof data === "string" ? data : JSON.stringify(data, null, 2);
         entry += `\n  Data: ${serialized}`;
       } catch {
-        entry += `\n  Data: [Unserializable Object]`;
+        entry += "\n  Data: [Unserializable Object]";
       }
     }
 
     if (err) {
-      entry += `\n  Error: ${err.message || err}`;
-      if (err.stack) {
+      const errMsg = getErrorMessage(err);
+      entry += `\n  Error: ${errMsg}`;
+      if (err instanceof Error && err.stack) {
         entry += `\n  Stack: ${err.stack}`;
       }
     }
@@ -63,7 +66,7 @@ class DevLogger {
     return entry;
   }
 
-  log(level: LogLevel, tag: string, message: string, data?: any, err?: any) {
+  log(level: LogLevel, tag: string, message: string, data?: unknown, err?: unknown) {
     if (!this.isDev) return;
     const formatted = this.format(level, tag, message, data, err);
 
@@ -74,23 +77,23 @@ class DevLogger {
     }
   }
 
-  debug(tag: string, message: string, data?: any) {
+  debug(tag: string, message: string, data?: unknown) {
     this.log("DEBUG", tag, message, data);
   }
 
-  info(tag: string, message: string, data?: any) {
+  info(tag: string, message: string, data?: unknown) {
     this.log("INFO", tag, message, data);
   }
 
-  warn(tag: string, message: string, data?: any, err?: any) {
+  warn(tag: string, message: string, data?: unknown, err?: unknown) {
     this.log("WARN", tag, message, data, err);
   }
 
-  error(tag: string, message: string, err?: any, data?: any) {
+  error(tag: string, message: string, err?: unknown, data?: unknown) {
     this.log("ERROR", tag, message, data, err);
   }
 
-  logMobile(entry: { level?: LogLevel; tag?: string; message: string; data?: any; error?: any }) {
+  logMobile(entry: { level?: LogLevel; tag?: string; message: string; data?: unknown; error?: unknown }) {
     if (!this.isDev) return;
     const level = entry.level || "INFO";
     const tag = entry.tag || "MobileApp";

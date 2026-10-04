@@ -1,6 +1,8 @@
 import type { FastifyPluginAsync } from "fastify";
-import { formatSuccessResponse } from "@/shared/utils/response.ts";
+
 import { authenticateUser, requireRole } from "@/modules/auth/auth.middleware.ts";
+import { formatSuccessResponse } from "@/shared/utils/response.ts";
+
 import { adminAnalyticsService } from "./admin-analytics.services.ts";
 
 export const adminAnalyticsRoutes: FastifyPluginAsync = async (fastify) => {
@@ -22,9 +24,9 @@ export const adminAnalyticsRoutes: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       const result = await adminAnalyticsService.getOverview();
       return reply.code(200).send(
-        formatSuccessResponse(request, "Platform overview telemetry retrieved successfully", result)
+        formatSuccessResponse(request, "Platform overview telemetry retrieved successfully", result),
       );
-    }
+    },
   );
 
   // GET /api/v1/admin/analytics/costs
@@ -41,9 +43,9 @@ export const adminAnalyticsRoutes: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       const result = await adminAnalyticsService.getCosts();
       return reply.code(200).send(
-        formatSuccessResponse(request, "AI infrastructure cost analysis calculated successfully", result)
+        formatSuccessResponse(request, "AI infrastructure cost analysis calculated successfully", result),
       );
-    }
+    },
   );
 
   // GET /api/v1/admin/analytics/latency
@@ -60,8 +62,8 @@ export const adminAnalyticsRoutes: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       const result = await adminAnalyticsService.getLatencyTelemetry();
       return reply.code(200).send(
-        formatSuccessResponse(request, "Latency telemetry metrics retrieved successfully", result)
+        formatSuccessResponse(request, "Latency telemetry metrics retrieved successfully", result),
       );
-    }
+    },
   );
 };

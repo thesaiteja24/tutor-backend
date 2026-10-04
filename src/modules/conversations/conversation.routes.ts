@@ -1,6 +1,8 @@
 import type { FastifyPluginAsync } from "fastify";
+
 import { conversationService } from "@/modules/conversations/conversation.services.ts";
 import { formatPaginatedResponse, formatSuccessResponse } from "@/shared/utils/response.ts";
+
 import {
   createConversationSchema,
   getConversationParamsSchema,
@@ -128,9 +130,9 @@ export const conversationRoutes: FastifyPluginAsync = async (fastify) => {
           total,
           limit: query.limit,
           offset: query.offset,
-        })
+        }),
       );
-    }
+    },
   );
 
   // GET /api/v1/conversations/:id -> Get conversation with full message history
@@ -173,9 +175,9 @@ export const conversationRoutes: FastifyPluginAsync = async (fastify) => {
       const conversation = await conversationService.getConversationWithHistory(id);
 
       return reply.code(200).send(
-        formatSuccessResponse(request, "Conversation retrieved successfully", conversation)
+        formatSuccessResponse(request, "Conversation retrieved successfully", conversation),
       );
-    }
+    },
   );
 
   // POST /api/v1/conversations -> Create conversation
@@ -221,9 +223,9 @@ export const conversationRoutes: FastifyPluginAsync = async (fastify) => {
       const created = await conversationService.createConversation(input);
 
       return reply.code(201).send(
-        formatSuccessResponse(request, "Conversation created successfully", created)
+        formatSuccessResponse(request, "Conversation created successfully", created),
       );
-    }
+    },
   );
 
   // PATCH /api/v1/conversations/:id -> Update title/prompt/status
@@ -261,9 +263,9 @@ export const conversationRoutes: FastifyPluginAsync = async (fastify) => {
       const updated = await conversationService.updateConversation(id, input);
 
       return reply.code(200).send(
-        formatSuccessResponse(request, "Conversation updated successfully", updated)
+        formatSuccessResponse(request, "Conversation updated successfully", updated),
       );
-    }
+    },
   );
 
   // DELETE /api/v1/conversations/:id -> Archive/Soft delete
@@ -303,8 +305,8 @@ export const conversationRoutes: FastifyPluginAsync = async (fastify) => {
       await conversationService.deleteConversation(id);
 
       return reply.code(200).send(
-        formatSuccessResponse(request, "Conversation deleted successfully", { id })
+        formatSuccessResponse(request, "Conversation deleted successfully", { id }),
       );
-    }
+    },
   );
 };

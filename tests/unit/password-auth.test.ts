@@ -1,13 +1,14 @@
 import { describe, expect, it } from "bun:test";
+
+import { signJwtToken, verifyJwtToken } from "@/shared/auth/jwt.ts";
 import {
-  PASSWORD_REGEX,
   generateNumericOtp,
   hashOtp,
   hashPassword,
+  PASSWORD_REGEX,
   verifyOtp,
   verifyPassword,
 } from "@/shared/auth/password.ts";
-import { signJwtToken, verifyJwtToken } from "@/shared/auth/jwt.ts";
 
 describe("Password & Auth Security Unit Tests", () => {
   it("strictly validates standard password complexity regex", () => {

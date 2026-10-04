@@ -1,4 +1,5 @@
 import type { FastifyPluginAsync } from "fastify";
+
 import { adminAnalyticsRoutes } from "./analytics/index.ts";
 import { adminPersonaRoutes } from "./personas/index.ts";
 import { adminPracticeModeRoutes } from "./practice-modes/index.ts";

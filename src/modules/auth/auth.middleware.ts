@@ -1,7 +1,8 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { ForbiddenError, UnauthorizedError } from "@/shared/errors/index.ts";
-import { verifyJwtToken, type UserJwtPayload } from "@/shared/auth/jwt.ts";
+
 import type { UserRole } from "@/database/schema/users.ts";
+import { type UserJwtPayload,verifyJwtToken } from "@/shared/auth/jwt.ts";
+import { ForbiddenError, UnauthorizedError } from "@/shared/errors/index.ts";
 
 declare module "fastify" {
   interface FastifyRequest {
@@ -33,7 +34,7 @@ export function requireRole(...allowedRoles: UserRole[]) {
     }
     if (!allowedRoles.includes(request.user.role)) {
       throw new ForbiddenError(
-        `Access denied. Requires one of the following roles: [${allowedRoles.join(", ")}].`
+        `Access denied. Requires one of the following roles: [${allowedRoles.join(", ")}].`,
       );
     }
   };
@@ -53,4 +54,3 @@ export async function optionalAuthenticateUser(request: FastifyRequest, _reply: 
     }
   }
 }
-

@@ -61,6 +61,7 @@ export interface BuildPromptParams {
   nativeLanguage?: string;
   englishLevel?: string;
   introducedTerms?: string[];
+  learnerContextPrompt?: string;
 }
 
 export const RESPONSE_CONTRACT = `You must return valid JSON matching this schema:
@@ -162,8 +163,8 @@ export function buildTutorSystemPrompt(params: BuildPromptParams): string {
     level === "beginner"
       ? `65% English, 35% ${lang.name} in ${lang.scriptName}`
       : level === "advanced"
-      ? `95% Fluent English, 5% ${lang.name} in ${lang.scriptName}`
-      : `85% English Immersion, 15% ${lang.name} in ${lang.scriptName}`;
+        ? `95% Fluent English, 5% ${lang.name} in ${lang.scriptName}`
+        : `85% English Immersion, 15% ${lang.name} in ${lang.scriptName}`;
 
   // 1. Persona (Character Voice & Presence)
   sections.push(`=== TUTOR IDENTITY & PERSONALITY ===\n${params.personaPrompt.trim()}`);
@@ -187,7 +188,7 @@ export function buildTutorSystemPrompt(params: BuildPromptParams): string {
   * Every single response MUST actively prompt the learner to speak or reply (e.g. "Now you try! Say...", "What would you say next?", "Try using it in a sentence!").
 - Strict Language Purity: ${lang.strictBan}
 - Turn Length: Strictly 1 to 2 short sentences per turn (max 28 words).
-- Emojis Prohibited: NEVER output any emojis (no 👋, 🖐️, 😊, ✨, etc.) in any response field.`
+- Emojis Prohibited: NEVER output any emojis (no 👋, 🖐️, 😊, ✨, etc.) in any response field.`,
   );
 
   // 4. Conversational Continuity & Dynamic Language Adaptation
@@ -196,7 +197,7 @@ export function buildTutorSystemPrompt(params: BuildPromptParams): string {
 - Acknowledge and evaluate the learner's response to your previous prompt.
 - Do NOT reset the scenario, do NOT re-introduce yourself, and do NOT change the topic abruptly.
 - Advance the conversation naturally to the next turn.
-- If the learner's native language changes mid-session, smoothly transition your code-mixed tips and explanations into the new language (${lang.name} in ${lang.scriptName}) while maintaining context.`
+- If the learner's native language changes mid-session, smoothly transition your code-mixed tips and explanations into the new language (${lang.name} in ${lang.scriptName}) while maintaining context.`,
   );
 
   // 5. Learner Profile & Context
@@ -206,7 +207,7 @@ export function buildTutorSystemPrompt(params: BuildPromptParams): string {
   const custom = params.customPrompt ? `\nAdditional Session Context: ${params.customPrompt}` : "";
 
   sections.push(
-    `=== LEARNER CONTEXT ===\nNative Language: ${lang.name} (${lang.scriptName})\nEnglish Proficiency Level: ${level}${custom}${terms}`
+    `=== LEARNER CONTEXT ===\nNative Language: ${lang.name} (${lang.scriptName})\nEnglish Proficiency Level: ${level}${custom}${terms}`,
   );
 
   // 6. Response Contract
@@ -229,17 +230,17 @@ export function toPublicTutorTurn(turn: TutorTurnResponse): PublicTutorTurn {
       : null,
     correction: turn.correction?.naturalRewrite
       ? {
-          original: sanitizeEmojis(turn.correction.original),
-          naturalRewrite: sanitizeEmojis(turn.correction.naturalRewrite),
-          explanation: turn.correction.explanation ? sanitizeEmojis(turn.correction.explanation) : null,
-        }
+        original: sanitizeEmojis(turn.correction.original),
+        naturalRewrite: sanitizeEmojis(turn.correction.naturalRewrite),
+        explanation: turn.correction.explanation ? sanitizeEmojis(turn.correction.explanation) : null,
+      }
       : null,
     learningState: turn.learningState
       ? {
-          topic: turn.learningState.topic || null,
-          introducedTerms: turn.learningState.introducedTerms || [],
-          targetSkill: turn.learningState.targetSkill || null,
-        }
+        topic: turn.learningState.topic || null,
+        introducedTerms: turn.learningState.introducedTerms || [],
+        targetSkill: turn.learningState.targetSkill || null,
+      }
       : null,
   };
 }
@@ -251,11 +252,14 @@ export function toTtsSpeechText(turn: TutorTurnResponse): string {
     .trim();
 }
 
+export function stripJsonFence(text: string): string {
+  return text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+}
+
 export function parseTutorTurnResponse(data: unknown): TutorTurnResponse {
-  let parsed: any;
+  let parsed: unknown;
   if (typeof data === "string") {
-    const cleaned = data.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
-    parsed = JSON.parse(cleaned);
+    parsed = JSON.parse(stripJsonFence(data));
   } else {
     parsed = data;
   }
@@ -279,4 +283,16 @@ export function createFallbackTutorTurn(): TutorTurnResponse {
       targetSkill: "fluency",
     },
   };
+}
+
+export function validationSummary(error: unknown): string {
+  if (error && typeof error === "object" && "issues" in error && Array.isArray((error as { issues: unknown[] }).issues)) {
+    return (error as { issues: Array<{ path?: Array<string | number>; message?: string }> }).issues
+      .map((issue) => `${issue.path?.join(".") || "root"}: ${issue.message || "invalid"}`)
+      .join("; ");
+  }
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return String(error);
 }

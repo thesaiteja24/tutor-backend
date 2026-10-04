@@ -1,6 +1,5 @@
-import { eq } from "drizzle-orm";
 import { db } from "@/database/index.ts";
-import { users, type UserRole } from "@/database/schema/users.ts";
+import { type UserRole,users } from "@/database/schema/users.ts";
 
 export const DEFAULT_USER_ID = "01950000-0000-7000-8000-000000000000";
 export const SUPERADMIN_USER_ID = "01950000-0000-7000-8000-000000000001";

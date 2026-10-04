@@ -24,4 +24,3 @@ export const updateUserSchema = z.object({
 export type UserResponse = z.infer<typeof userResponseSchema>;
 export type GetUserParams = z.infer<typeof getUserParamsSchema>;
 export type UpdateUserInput = z.infer<typeof updateUserSchema>;
-

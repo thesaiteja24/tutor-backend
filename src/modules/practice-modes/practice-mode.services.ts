@@ -1,5 +1,6 @@
 import { NotFoundError } from "@/shared/errors/index.ts";
-import { practiceModeRepository, type PracticeModeRepository } from "./practice-mode.repositories.ts";
+
+import { type PracticeModeRepository,practiceModeRepository } from "./practice-mode.repositories.ts";
 import type { CreatePracticeModeInput, ListPracticeModesQuery, UpdatePracticeModeInput } from "./practice-mode.schemas.ts";
 
 export class PracticeModeService {

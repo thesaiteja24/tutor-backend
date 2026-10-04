@@ -1,7 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
-import { SarvamAIClient } from "sarvamai";
+
 import dotenv from "dotenv";
+import { SarvamAIClient } from "sarvamai";
 
 dotenv.config();
 
@@ -162,7 +163,7 @@ async function generateAllPreviews() {
 
     for (const [lang, spec] of Object.entries(persona.previews)) {
       const targetFile = path.join(personaDir, `preview_${lang}.wav`);
-      
+
       if (fs.existsSync(targetFile) && fs.statSync(targetFile).size > 1000) {
         console.log(`⏩ Skipping existing: ${persona.name} [${lang}]`);
         continue;
@@ -171,14 +172,15 @@ async function generateAllPreviews() {
       console.log(`⏳ Synthesizing ${persona.name} (${persona.voiceId}) [${lang} / ${spec.langCode}]...`);
 
       try {
-        const response = await client.textToSpeech.convert({
+        const payload: Parameters<typeof client.textToSpeech.convert>[0] = {
           text: spec.text,
-          language_code: spec.langCode as any,
-          speaker: persona.voiceId as any,
+          language_code: spec.langCode as Parameters<typeof client.textToSpeech.convert>[0]["language_code"],
+          speaker: persona.voiceId as Parameters<typeof client.textToSpeech.convert>[0]["speaker"],
           model: "bulbul:v3",
-          speech_sample_rate: 16000 as any,
-          output_audio_codec: "wav" as any,
-        });
+          speech_sample_rate: 16000,
+          output_audio_codec: "wav",
+        };
+        const response = await client.textToSpeech.convert(payload);
 
         const base64Audio = response.audios?.[0];
         if (!base64Audio) {
@@ -188,8 +190,9 @@ async function generateAllPreviews() {
         const buffer = Buffer.from(base64Audio, "base64");
         fs.writeFileSync(targetFile, buffer);
         console.log(`✅ Saved: ${targetFile} (${buffer.length} bytes)`);
-      } catch (err: any) {
-        console.error(`❌ Failed to synthesize ${persona.name} [${lang}]:`, err.message || err);
+      } catch (err: unknown) {
+        const errMessage = err instanceof Error ? err.message : String(err);
+        console.error(`❌ Failed to synthesize ${persona.name} [${lang}]:`, errMessage);
       }
     }
   }

@@ -1,6 +1,8 @@
-import { and, asc, count, desc, eq, ilike, isNull, or, type SQL } from "drizzle-orm";
+import { and, count, desc, eq, ilike, isNull, or, type SQL } from "drizzle-orm";
+
 import { db } from "@/database/index.ts";
-import { users, type User, type UserRole } from "@/database/schema/users.ts";
+import { type User, type UserRole,users } from "@/database/schema/users.ts";
+
 import type { ListAdminUsersQuery } from "./admin-users.schemas.ts";
 
 export class AdminUsersRepository {
@@ -12,8 +14,8 @@ export class AdminUsersRepository {
       conditions.push(
         or(
           ilike(users.email, searchPattern),
-          ilike(users.displayName, searchPattern)
-        )
+          ilike(users.displayName, searchPattern),
+        ),
       );
     }
 

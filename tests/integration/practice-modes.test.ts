@@ -1,13 +1,10 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import type { FastifyInstance } from "fastify";
+
 import { buildApp } from "@/app.ts";
-import { db } from "@/database/index.ts";
-import { practiceModes } from "@/database/schema/practice-modes.ts";
-import { eq } from "drizzle-orm";
 
 describe("Practice Modes REST API Suite", () => {
   let app: FastifyInstance;
-  let testModeId: string | undefined;
 
   beforeAll(async () => {
     app = await buildApp();
@@ -15,9 +12,6 @@ describe("Practice Modes REST API Suite", () => {
   });
 
   afterAll(async () => {
-    if (testModeId) {
-      await db.delete(practiceModes).where(eq(practiceModes.id, testModeId));
-    }
     await app.close();
   });
 

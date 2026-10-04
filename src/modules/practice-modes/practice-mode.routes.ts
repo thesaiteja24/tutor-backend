@@ -1,6 +1,8 @@
 import type { FastifyPluginAsync } from "fastify";
+
 import { practiceModeService } from "@/modules/practice-modes/practice-mode.services.ts";
 import { formatPaginatedResponse, formatSuccessResponse } from "@/shared/utils/response.ts";
+
 import {
   getPracticeModeParamsSchema,
   listPracticeModesQuerySchema,
@@ -80,9 +82,9 @@ export const practiceModeRoutes: FastifyPluginAsync = async (fastify) => {
           total,
           limit: query.limit,
           offset: query.offset,
-        })
+        }),
       );
-    }
+    },
   );
 
   // GET /api/v1/practice-modes/:id -> Get single practice mode
@@ -149,8 +151,8 @@ export const practiceModeRoutes: FastifyPluginAsync = async (fastify) => {
       const mode = await practiceModeService.getPracticeModeById(id);
 
       return reply.code(200).send(
-        formatSuccessResponse(request, "Practice mode retrieved successfully", mode)
+        formatSuccessResponse(request, "Practice mode retrieved successfully", mode),
       );
-    }
+    },
   );
 };

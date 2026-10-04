@@ -1,5 +1,6 @@
 import { NotFoundError } from "@/shared/errors/index.ts";
-import { personaRepository, type PersonaRepository } from "./persona.repositories.ts";
+
+import { type PersonaRepository,personaRepository } from "./persona.repositories.ts";
 import type { CreatePersonaInput, ListPersonasQuery, UpdatePersonaInput } from "./persona.schemas.ts";
 
 export class PersonaService {

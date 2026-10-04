@@ -28,9 +28,8 @@ export const users = pgTable(
     index("users_role_idx").on(table.role),
     index("users_org_id_idx").on(table.orgId),
     index("users_auth_provider_idx").on(table.authProvider, table.providerId),
-  ]
+  ],
 );
 
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
-

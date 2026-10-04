@@ -1,9 +1,10 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { and, eq } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
+
 import { buildApp } from "@/app.ts";
 import { db } from "@/database/index.ts";
 import { authOtps, users } from "@/database/schema/index.ts";
-import { and, eq } from "drizzle-orm";
 import { hashOtp } from "@/shared/auth/password.ts";
 
 describe("Authentication & Email Verification Integration Suite", () => {
@@ -227,126 +228,124 @@ describe("Authentication & Email Verification Integration Suite", () => {
     "POST /api/v1/auth/change-email/request & confirm -> handles complete email change flow",
     async () => {
       // 1. Re-login with current active password to get fresh token
-    const loginRes = await app.inject({
-      method: "POST",
-      url: "/api/v1/auth/login",
-      payload: {
-        email: testEmail,
-        password: "FinalResetPassword@789",
-      },
-    });
-    const currentToken = loginRes.json().data.token;
+      const loginRes = await app.inject({
+        method: "POST",
+        url: "/api/v1/auth/login",
+        payload: {
+          email: testEmail,
+          password: "FinalResetPassword@789",
+        },
+      });
+      const currentToken = loginRes.json().data.token;
 
-    const newTestEmail = `new-email-${Date.now()}@example.com`;
+      const newTestEmail = `new-email-${Date.now()}@example.com`;
 
-    // 2. Request change email (fails with wrong password)
-    const wrongPassRes = await app.inject({
-      method: "POST",
-      url: "/api/v1/auth/change-email/request",
-      headers: { authorization: `Bearer ${currentToken}` },
-      payload: {
-        currentPassword: "WrongPassword@123",
-        newEmail: newTestEmail,
-      },
-    });
-    expect(wrongPassRes.statusCode).toBe(400);
+      // 2. Request change email (fails with wrong password)
+      const wrongPassRes = await app.inject({
+        method: "POST",
+        url: "/api/v1/auth/change-email/request",
+        headers: { authorization: `Bearer ${currentToken}` },
+        payload: {
+          currentPassword: "WrongPassword@123",
+          newEmail: newTestEmail,
+        },
+      });
+      expect(wrongPassRes.statusCode).toBe(400);
 
-    // 3. Request change email (succeeds)
-    const requestRes = await app.inject({
-      method: "POST",
-      url: "/api/v1/auth/change-email/request",
-      headers: { authorization: `Bearer ${currentToken}` },
-      payload: {
-        currentPassword: "FinalResetPassword@789",
-        newEmail: newTestEmail,
-      },
-    });
-    expect(requestRes.statusCode).toBe(200);
-    expect(requestRes.json().success).toBe(true);
+      // 3. Request change email (succeeds)
+      const requestRes = await app.inject({
+        method: "POST",
+        url: "/api/v1/auth/change-email/request",
+        headers: { authorization: `Bearer ${currentToken}` },
+        payload: {
+          currentPassword: "FinalResetPassword@789",
+          newEmail: newTestEmail,
+        },
+      });
+      expect(requestRes.statusCode).toBe(200);
+      expect(requestRes.json().success).toBe(true);
 
-    // 4. Mock known email change OTP
-    const changeOtp = "654321";
-    const otpHash = await hashOtp(changeOtp);
-    await db
-      .update(authOtps)
-      .set({ otpHash, expiresAt: new Date(Date.now() + 600000) })
-      .where(and(eq(authOtps.email, newTestEmail), eq(authOtps.purpose, "email_change")));
+      // 4. Mock known email change OTP
+      const changeOtp = "654321";
+      const otpHash = await hashOtp(changeOtp);
+      await db
+        .update(authOtps)
+        .set({ otpHash, expiresAt: new Date(Date.now() + 600000) })
+        .where(and(eq(authOtps.email, newTestEmail), eq(authOtps.purpose, "email_change")));
 
-    // 5. Confirm email change
-    const confirmRes = await app.inject({
-      method: "POST",
-      url: "/api/v1/auth/change-email/confirm",
-      headers: { authorization: `Bearer ${currentToken}` },
-      payload: {
-        newEmail: newTestEmail,
-        otp: changeOtp,
-      },
-    });
-    expect(confirmRes.statusCode).toBe(200);
-    const confirmJson = confirmRes.json();
-    expect(confirmJson.success).toBe(true);
-    expect(confirmJson.data.user.email).toBe(newTestEmail);
-    expect(confirmJson.data.token).toBeDefined();
+      // 5. Confirm email change
+      const confirmRes = await app.inject({
+        method: "POST",
+        url: "/api/v1/auth/change-email/confirm",
+        headers: { authorization: `Bearer ${currentToken}` },
+        payload: {
+          newEmail: newTestEmail,
+          otp: changeOtp,
+        },
+      });
+      expect(confirmRes.statusCode).toBe(200);
+      const confirmJson = confirmRes.json();
+      expect(confirmJson.success).toBe(true);
+      expect(confirmJson.data.user.email).toBe(newTestEmail);
+      expect(confirmJson.data.token).toBeDefined();
 
-    // 6. Verify profile with new token
-    const meRes = await app.inject({
-      method: "GET",
-      url: "/api/v1/auth/me",
-      headers: { authorization: `Bearer ${confirmJson.data.token}` },
-    });
-    expect(meRes.statusCode).toBe(200);
-    expect(meRes.json().data.email).toBe(newTestEmail);
+      // 6. Verify profile with new token
+      const meRes = await app.inject({
+        method: "GET",
+        url: "/api/v1/auth/me",
+        headers: { authorization: `Bearer ${confirmJson.data.token}` },
+      });
+      expect(meRes.statusCode).toBe(200);
+      expect(meRes.json().data.email).toBe(newTestEmail);
 
-    // Cleanup
-    await db.delete(users).where(eq(users.email, newTestEmail));
-    await db.delete(authOtps).where(eq(authOtps.email, newTestEmail));
-  }, 15000);
+      // Cleanup
+      await db.delete(users).where(eq(users.email, newTestEmail));
+      await db.delete(authOtps).where(eq(authOtps.email, newTestEmail));
+    }, 15000);
 
   it(
     "POST /api/v1/auth/login -> authenticates seeded superadmin, org_admin, and test user with correct role claims",
     async () => {
       // 1. Super Admin login
-    const adminRes = await app.inject({
-      method: "POST",
-      url: "/api/v1/auth/login",
-      payload: {
-        email: "admin@tutor.com",
-        password: "Admin@1234",
-      },
-    });
-    expect(adminRes.statusCode).toBe(200);
-    const adminJson = adminRes.json();
-    expect(adminJson.data.user.role).toBe("superadmin");
-    expect(adminJson.data.user.displayName).toBe("Super Admin");
+      const adminRes = await app.inject({
+        method: "POST",
+        url: "/api/v1/auth/login",
+        payload: {
+          email: "admin@tutor.com",
+          password: "Admin@1234",
+        },
+      });
+      expect(adminRes.statusCode).toBe(200);
+      const adminJson = adminRes.json();
+      expect(adminJson.data.user.role).toBe("superadmin");
+      expect(adminJson.data.user.displayName).toBe("Super Admin");
 
-    // 2. Org Admin login
-    const orgRes = await app.inject({
-      method: "POST",
-      url: "/api/v1/auth/login",
-      payload: {
-        email: "org@tutor.com",
-        password: "Org@1234",
-      },
-    });
-    expect(orgRes.statusCode).toBe(200);
-    const orgJson = orgRes.json();
-    expect(orgJson.data.user.role).toBe("org_admin");
-    expect(orgJson.data.user.displayName).toBe("Org Admin");
+      // 2. Org Admin login
+      const orgRes = await app.inject({
+        method: "POST",
+        url: "/api/v1/auth/login",
+        payload: {
+          email: "org@tutor.com",
+          password: "Org@1234",
+        },
+      });
+      expect(orgRes.statusCode).toBe(200);
+      const orgJson = orgRes.json();
+      expect(orgJson.data.user.role).toBe("org_admin");
+      expect(orgJson.data.user.displayName).toBe("Org Admin");
 
-    // 3. Test User login
-    const userRes = await app.inject({
-      method: "POST",
-      url: "/api/v1/auth/login",
-      payload: {
-        email: "test@tutor.com",
-        password: "Test@1234",
-      },
-    });
-    expect(userRes.statusCode).toBe(200);
-    const userJson = userRes.json();
-    expect(userJson.data.user.role).toBe("user");
-    expect(userJson.data.user.displayName).toBe("Test User");
-  }, 15000);
+      // 3. Test User login
+      const userRes = await app.inject({
+        method: "POST",
+        url: "/api/v1/auth/login",
+        payload: {
+          email: "test@tutor.com",
+          password: "Test@1234",
+        },
+      });
+      expect(userRes.statusCode).toBe(200);
+      const userJson = userRes.json();
+      expect(userJson.data.user.role).toBe("user");
+      expect(userJson.data.user.displayName).toBe("Test User");
+    }, 15000);
 });
-
-

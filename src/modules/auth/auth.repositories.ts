@@ -1,7 +1,8 @@
 import { and, desc, eq, gt, isNull, lt } from "drizzle-orm";
+
 import { db } from "@/database/index.ts";
-import { users, type User, type NewUser } from "@/database/schema/users.ts";
-import { authOtps, type AuthOtp, type OtpPurpose } from "@/database/schema/auth-otps.ts";
+import { type AuthOtp, authOtps, type OtpPurpose } from "@/database/schema/auth-otps.ts";
+import { type NewUser,type User, users } from "@/database/schema/users.ts";
 
 export class AuthRepository {
   async findUserByEmail(email: string): Promise<User | null> {
@@ -80,8 +81,8 @@ export class AuthRepository {
           eq(authOtps.purpose, purpose),
           eq(authOtps.isUsed, false),
           gt(authOtps.expiresAt, now),
-          lt(authOtps.attempts, 5)
-        )
+          lt(authOtps.attempts, 5),
+        ),
       )
       .orderBy(desc(authOtps.createdAt))
       .limit(1);

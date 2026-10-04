@@ -1,3 +1,12 @@
+import { signJwtToken } from "@/shared/auth/jwt.ts";
+import {
+  generateNumericOtp,
+  hashOtp,
+  hashPassword,
+  verifyOtp,
+  verifyPassword,
+} from "@/shared/auth/password.ts";
+import { type EmailService,emailService } from "@/shared/email/index.ts";
 import {
   BadRequestError,
   ConflictError,
@@ -6,16 +15,8 @@ import {
   TooManyRequestsError,
   UnauthorizedError,
 } from "@/shared/errors/index.ts";
-import {
-  generateNumericOtp,
-  hashOtp,
-  hashPassword,
-  verifyOtp,
-  verifyPassword,
-} from "@/shared/auth/password.ts";
-import { signJwtToken } from "@/shared/auth/jwt.ts";
-import { emailService, type EmailService } from "@/shared/email/index.ts";
-import { authRepository, type AuthRepository } from "./auth.repositories.ts";
+
+import { type AuthRepository,authRepository } from "./auth.repositories.ts";
 import type {
   ChangePasswordInput,
   ConfirmChangeEmailInput,
@@ -31,10 +32,10 @@ import type {
 export class AuthService {
   constructor(
     private readonly repo: AuthRepository = authRepository,
-    private readonly email: EmailService = emailService
+    private readonly email: EmailService = emailService,
   ) {}
 
-  private sanitizeUser(user: any) {
+  private sanitizeUser(user: { id: string; email: string; displayName: string; role?: string | null; orgId?: string | null; nativeLanguage: string; englishLevel: string; isEmailVerified: boolean; authProvider: string; isActive: boolean; lastLoginAt?: string | Date | null; createdAt: string | Date; updatedAt: string | Date }) {
     return {
       id: user.id,
       email: user.email,
@@ -60,17 +61,16 @@ export class AuthService {
 
     const passwordHash = await hashPassword(input.password);
 
-    let user;
     if (existingUser && !existingUser.isEmailVerified) {
       // Update existing unverified profile with latest password & preferences
-      user = await this.repo.updateUser(existingUser.id, {
+      await this.repo.updateUser(existingUser.id, {
         passwordHash,
         displayName: input.displayName,
         nativeLanguage: input.nativeLanguage,
         englishLevel: input.englishLevel,
       });
     } else {
-      user = await this.repo.createUser({
+      await this.repo.createUser({
         email: input.email,
         passwordHash,
         displayName: input.displayName,
@@ -225,7 +225,7 @@ export class AuthService {
       this.email.sendVerificationOtp(user.email, user.displayName, otp).catch(() => {});
 
       throw new ForbiddenError(
-        "Your email is not verified yet. A new verification code has been sent to your email address."
+        "Your email is not verified yet. A new verification code has been sent to your email address.",
       );
     }
 

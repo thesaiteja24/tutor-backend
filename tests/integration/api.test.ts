@@ -1,14 +1,10 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import type { FastifyInstance } from "fastify";
+
 import { buildApp } from "@/app.ts";
-import { db } from "@/database/index.ts";
-import { personas } from "@/database/schema/personas.ts";
-import { eq } from "drizzle-orm";
 
 describe("AI English Communication Tutor API Suite", () => {
   let app: FastifyInstance;
-  let testPersonaId: string | undefined;
-  let testConversationId: string;
 
   beforeAll(async () => {
     app = await buildApp();
@@ -16,9 +12,6 @@ describe("AI English Communication Tutor API Suite", () => {
   });
 
   afterAll(async () => {
-    if (testPersonaId) {
-      await db.delete(personas).where(eq(personas.id, testPersonaId));
-    }
     await app.close();
   });
 
