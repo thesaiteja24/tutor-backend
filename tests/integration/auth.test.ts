@@ -3,6 +3,7 @@ import { and, eq } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 
 import { buildApp } from "@/app.ts";
+import { env } from "@/config/index.ts";
 import { db } from "@/database/index.ts";
 import { authOtps, users } from "@/database/schema/index.ts";
 import { hashOtp } from "@/shared/auth/password.ts";
@@ -10,8 +11,10 @@ import { hashOtp } from "@/shared/auth/password.ts";
 describe("Authentication & Email Verification Integration Suite", () => {
   let app: FastifyInstance;
   const testEmail = `test.student.${Date.now()}@tutor.app`;
+  const roleAttackEmail = `role-attack.${Date.now()}@tutor.app`;
   const testPassword = "Password@123";
   let authToken: string;
+  let pendingNewTestEmail: string | undefined;
 
   beforeAll(async () => {
     app = await buildApp();
@@ -22,7 +25,13 @@ describe("Authentication & Email Verification Integration Suite", () => {
     // Cleanup test user & otps
     await db.delete(authOtps).where(eq(authOtps.email, testEmail));
     await db.delete(users).where(eq(users.email, testEmail));
-    await app.close();
+    await db.delete(authOtps).where(eq(authOtps.email, roleAttackEmail));
+    await db.delete(users).where(eq(users.email, roleAttackEmail));
+    if (pendingNewTestEmail) {
+      await db.delete(authOtps).where(eq(authOtps.email, pendingNewTestEmail));
+      await db.delete(users).where(eq(users.email, pendingNewTestEmail));
+    }
+    await app?.close();
   });
 
   it("POST /api/v1/auth/register -> rejects weak passwords", async () => {
@@ -39,6 +48,23 @@ describe("Authentication & Email Verification Integration Suite", () => {
     expect(response.statusCode).toBe(400);
     const json = response.json();
     expect(json.success).toBe(false);
+  });
+
+  it("POST /api/v1/auth/register -> rejects client-supplied elevated role fields", async () => {
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/register",
+      payload: {
+        email: roleAttackEmail,
+        password: testPassword,
+        displayName: "Role Attack",
+        role: "superadmin",
+        orgId: "01950000-0000-7000-8000-000000000001",
+      },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json().success).toBe(false);
   });
 
   it("POST /api/v1/auth/register -> registers unverified user and creates 6-digit OTP", async () => {
@@ -68,7 +94,7 @@ describe("Authentication & Email Verification Integration Suite", () => {
     expect(otp).toBeDefined();
     expect(otp!.purpose).toBe("email_verification");
     expect(otp!.isUsed).toBe(false);
-  });
+  }, 30000);
 
   it("POST /api/v1/auth/login -> blocks unverified user with 403", async () => {
     const response = await app.inject({
@@ -83,7 +109,7 @@ describe("Authentication & Email Verification Integration Suite", () => {
     expect(response.statusCode).toBe(403);
     const json = response.json();
     expect(json.success).toBe(false);
-  });
+  }, 30000);
 
   it("POST /api/v1/auth/verify-email -> verifies user and returns 30-day JWT", async () => {
     // Inject a known OTP for test determinism
@@ -222,7 +248,7 @@ describe("Authentication & Email Verification Integration Suite", () => {
       },
     });
     expect(loginRes.statusCode).toBe(200);
-  });
+  }, 30000);
 
   it(
     "POST /api/v1/auth/change-email/request & confirm -> handles complete email change flow",
@@ -239,6 +265,7 @@ describe("Authentication & Email Verification Integration Suite", () => {
       const currentToken = loginRes.json().data.token;
 
       const newTestEmail = `new-email-${Date.now()}@example.com`;
+      pendingNewTestEmail = newTestEmail;
 
       // 2. Request change email (fails with wrong password)
       const wrongPassRes = await app.inject({
@@ -301,51 +328,26 @@ describe("Authentication & Email Verification Integration Suite", () => {
       // Cleanup
       await db.delete(users).where(eq(users.email, newTestEmail));
       await db.delete(authOtps).where(eq(authOtps.email, newTestEmail));
-    }, 15000);
+      pendingNewTestEmail = undefined;
+    }, 30000);
 
   it(
-    "POST /api/v1/auth/login -> authenticates seeded superadmin, org_admin, and test user with correct role claims",
+    "POST /api/v1/auth/login -> authenticates the configured seeded superadmin",
     async () => {
-      // 1. Super Admin login
+      if (!env.ADMIN_EMAIL || !env.ADMIN_PASS) {
+        throw new Error("ADMIN_EMAIL and ADMIN_PASS are required for the seeded admin integration test");
+      }
+
       const adminRes = await app.inject({
         method: "POST",
         url: "/api/v1/auth/login",
         payload: {
-          email: "admin@tutor.com",
-          password: "Admin@1234",
+          email: env.ADMIN_EMAIL,
+          password: env.ADMIN_PASS,
         },
       });
       expect(adminRes.statusCode).toBe(200);
       const adminJson = adminRes.json();
       expect(adminJson.data.user.role).toBe("superadmin");
-      expect(adminJson.data.user.displayName).toBe("Super Admin");
-
-      // 2. Org Admin login
-      const orgRes = await app.inject({
-        method: "POST",
-        url: "/api/v1/auth/login",
-        payload: {
-          email: "org@tutor.com",
-          password: "Org@1234",
-        },
-      });
-      expect(orgRes.statusCode).toBe(200);
-      const orgJson = orgRes.json();
-      expect(orgJson.data.user.role).toBe("org_admin");
-      expect(orgJson.data.user.displayName).toBe("Org Admin");
-
-      // 3. Test User login
-      const userRes = await app.inject({
-        method: "POST",
-        url: "/api/v1/auth/login",
-        payload: {
-          email: "test@tutor.com",
-          password: "Test@1234",
-        },
-      });
-      expect(userRes.statusCode).toBe(200);
-      const userJson = userRes.json();
-      expect(userJson.data.user.role).toBe("user");
-      expect(userJson.data.user.displayName).toBe("Test User");
     }, 15000);
 });

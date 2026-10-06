@@ -2,21 +2,22 @@ import { z } from "zod";
 
 import { personaResponseSchema } from "@/modules/personas/persona.schemas.ts";
 import { practiceModeResponseSchema } from "@/modules/practice-modes/practice-mode.schemas.ts";
+import { uuidv7Schema } from "@/shared/schemas/identifiers.ts";
 
-export const latencyMetricsSchema = z.object({
-  sttMs: z.number().optional(),
-  llmMs: z.number().optional(),
-  ttsMs: z.number().optional(),
-  ttfaMs: z.number().optional(),
-  ttftMs: z.number().optional(),
-  totalMs: z.number().optional(),
-  streamChunks: z.number().optional(),
+export const latencyMetricsSchema = z.strictObject({
+  sttMs: z.number().nonnegative().optional(),
+  llmMs: z.number().nonnegative().optional(),
+  ttsMs: z.number().nonnegative().optional(),
+  ttfaMs: z.number().nonnegative().optional(),
+  ttftMs: z.number().nonnegative().optional(),
+  totalMs: z.number().nonnegative().optional(),
+  streamChunks: z.number().int().nonnegative().optional(),
   cacheHit: z.boolean().optional(),
 });
 
-export const messageResponseSchema = z.object({
-  id: z.string().uuid(),
-  conversationId: z.string().uuid(),
+export const messageResponseSchema = z.strictObject({
+  id: uuidv7Schema,
+  conversationId: uuidv7Schema,
   sender: z.enum(["user", "assistant"]),
   content: z.string(),
   audioUrl: z.string().nullable().optional(),
@@ -25,11 +26,11 @@ export const messageResponseSchema = z.object({
   updatedAt: z.date().or(z.string()),
 });
 
-export const conversationResponseSchema = z.object({
-  id: z.string().uuid(),
-  userId: z.string().uuid(),
-  personaId: z.string().uuid(),
-  practiceModeId: z.string().uuid(),
+export const conversationResponseSchema = z.strictObject({
+  id: uuidv7Schema,
+  userId: uuidv7Schema,
+  personaId: uuidv7Schema,
+  practiceModeId: uuidv7Schema,
   title: z.string(),
   customPrompt: z.string().nullable().optional(),
   status: z.string(),
@@ -43,30 +44,29 @@ export const conversationDetailResponseSchema = conversationResponseSchema.exten
   messages: z.array(messageResponseSchema),
 });
 
-export const createConversationSchema = z.object({
-  personaId: z.string().uuid("Invalid persona ID"),
-  practiceModeId: z.string().uuid("Invalid practice mode ID").optional(),
+export const createConversationSchema = z.strictObject({
+  personaId: uuidv7Schema,
+  practiceModeId: uuidv7Schema.optional(),
   title: z.string().trim().min(1, "Title is required").max(200).optional(),
   customPrompt: z.string().trim().optional(),
-  userId: z.string().uuid().optional(),
 });
 
-export const updateConversationSchema = z.object({
+export const updateConversationSchema = z.strictObject({
   title: z.string().trim().min(1).max(200).optional(),
   customPrompt: z.string().trim().optional(),
   status: z.enum(["active", "archived"]).optional(),
 });
 
-export const listConversationsQuerySchema = z.object({
+export const listConversationsQuerySchema = z.strictObject({
   limit: z.coerce.number().int().min(1).max(100).default(20),
   offset: z.coerce.number().int().min(0).default(0),
-  personaId: z.string().uuid().optional(),
-  practiceModeId: z.string().uuid().optional(),
+  personaId: uuidv7Schema.optional(),
+  practiceModeId: uuidv7Schema.optional(),
   status: z.enum(["active", "archived", "all"]).default("active"),
 });
 
-export const getConversationParamsSchema = z.object({
-  id: z.string().uuid(),
+export const getConversationParamsSchema = z.strictObject({
+  id: uuidv7Schema,
 });
 
 export type CreateConversationInput = z.infer<typeof createConversationSchema>;

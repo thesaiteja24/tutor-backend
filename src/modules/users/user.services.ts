@@ -14,14 +14,6 @@ export class UserService {
     return user;
   }
 
-  async getDefaultUser() {
-    const user = await this.repo.findDefaultUser();
-    if (!user) {
-      throw new NotFoundError("Default user not found. Please run database seeds.");
-    }
-    return user;
-  }
-
   async updateUser(id: string, data: { displayName?: string; nativeLanguage?: string; englishLevel?: User["englishLevel"] }) {
     await this.getUserById(id);
     const updated = await this.repo.update(id, data);
@@ -31,13 +23,8 @@ export class UserService {
     return updated;
   }
 
-  async getUserAnalytics(userId?: string) {
-    if (!userId) {
-      const defaultUser = await this.getDefaultUser();
-      userId = defaultUser.id;
-    } else {
-      await this.getUserById(userId);
-    }
+  async getUserAnalytics(userId: string) {
+    await this.getUserById(userId);
     return this.repo.getUserAnalytics(userId);
   }
 }

@@ -1,5 +1,7 @@
 import type { FastifyPluginAsync } from "fastify";
 
+import { authenticateUser } from "@/modules/auth/auth.middleware.ts";
+import { ForbiddenError } from "@/shared/errors/index.ts";
 import { formatSuccessResponse } from "@/shared/utils/response.ts";
 
 import { getUserParamsSchema, updateUserSchema } from "./user.schemas.ts";
@@ -20,14 +22,15 @@ const userDocSchema = {
 };
 
 export const userRoutes: FastifyPluginAsync = async (fastify) => {
-  // GET /api/v1/users/me -> Default seeded user
+  // GET /api/v1/users/me -> Authenticated user
   fastify.get(
     "/me",
     {
+      preHandler: [authenticateUser],
       schema: {
         tags: ["Users"],
-        summary: "Get current default user",
-        description: "Retrieves the seeded default student profile for testing without auth.",
+        summary: "Get current authenticated user",
+        description: "Retrieves the student profile associated with the authenticated JWT.",
         response: {
           200: {
             description: "User profile retrieved successfully",
@@ -49,7 +52,7 @@ export const userRoutes: FastifyPluginAsync = async (fastify) => {
       },
     },
     async (request, reply) => {
-      const user = await userService.getDefaultUser();
+      const user = await userService.getUserById(request.user!.userId);
       return reply.code(200).send(
         formatSuccessResponse(request, "User profile retrieved successfully", user),
       );
@@ -60,9 +63,10 @@ export const userRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get(
     "/me/analytics",
     {
+      preHandler: [authenticateUser],
       schema: {
         tags: ["Users"],
-        summary: "Get current default user analytics & practice dashboard metrics",
+        summary: "Get current user analytics & practice dashboard metrics",
         description: "Retrieves speaking time, streak, weekly progress, skill breakdown, vocabulary vault, and recent history.",
         response: {
           200: {
@@ -85,21 +89,22 @@ export const userRoutes: FastifyPluginAsync = async (fastify) => {
       },
     },
     async (request, reply) => {
-      const analytics = await userService.getUserAnalytics();
+      const analytics = await userService.getUserAnalytics(request.user!.userId);
       return reply.code(200).send(
         formatSuccessResponse(request, "User analytics retrieved successfully", analytics),
       );
     },
   );
 
-  // PATCH /api/v1/users/me -> Update default user profile (native language, english level)
+  // PATCH /api/v1/users/me -> Update authenticated user profile
   fastify.patch(
     "/me",
     {
+      preHandler: [authenticateUser],
       schema: {
         tags: ["Users"],
-        summary: "Update current default user",
-        description: "Updates the default student's native language, english level, or display name.",
+        summary: "Update current user",
+        description: "Updates the authenticated student's native language, English level, or display name.",
         body: {
           type: "object",
           properties: {
@@ -129,9 +134,8 @@ export const userRoutes: FastifyPluginAsync = async (fastify) => {
       },
     },
     async (request, reply) => {
-      const defaultUser = await userService.getDefaultUser();
       const body = updateUserSchema.parse(request.body);
-      const updated = await userService.updateUser(defaultUser.id, body);
+      const updated = await userService.updateUser(request.user!.userId, body);
       return reply.code(200).send(
         formatSuccessResponse(request, "User profile updated successfully", updated),
       );
@@ -142,6 +146,7 @@ export const userRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get(
     "/:id",
     {
+      preHandler: [authenticateUser],
       schema: {
         tags: ["Users"],
         summary: "Get user by ID",
@@ -217,6 +222,9 @@ export const userRoutes: FastifyPluginAsync = async (fastify) => {
     },
     async (request, reply) => {
       const { id } = getUserParamsSchema.parse(request.params);
+      if (id !== request.user!.userId && request.user!.role !== "superadmin") {
+        throw new ForbiddenError("You may only access your own user profile.");
+      }
       const user = await userService.getUserById(id);
       return reply.code(200).send(
         formatSuccessResponse(request, "User profile retrieved successfully", user),
@@ -228,6 +236,7 @@ export const userRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.patch(
     "/:id",
     {
+      preHandler: [authenticateUser],
       schema: {
         tags: ["Users"],
         summary: "Update user by ID",
@@ -269,6 +278,9 @@ export const userRoutes: FastifyPluginAsync = async (fastify) => {
     },
     async (request, reply) => {
       const { id } = getUserParamsSchema.parse(request.params);
+      if (id !== request.user!.userId && request.user!.role !== "superadmin") {
+        throw new ForbiddenError("You may only update your own user profile.");
+      }
       const body = updateUserSchema.parse(request.body);
       const updated = await userService.updateUser(id, body);
       return reply.code(200).send(

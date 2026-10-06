@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync } from "fastify";
 
+import { authenticateUser } from "@/modules/auth/auth.middleware.ts";
 import { conversationService } from "@/modules/conversations/conversation.services.ts";
 import { formatPaginatedResponse, formatSuccessResponse } from "@/shared/utils/response.ts";
 
@@ -77,6 +78,8 @@ const conversationDetailItemSchema = {
 };
 
 export const conversationRoutes: FastifyPluginAsync = async (fastify) => {
+  fastify.addHook("preHandler", authenticateUser);
+
   // GET /api/v1/conversations -> List conversations
   fastify.get(
     "/",
@@ -123,7 +126,7 @@ export const conversationRoutes: FastifyPluginAsync = async (fastify) => {
     },
     async (request, reply) => {
       const query = listConversationsQuerySchema.parse(request.query);
-      const { items, total } = await conversationService.listConversations(query);
+      const { items, total } = await conversationService.listConversations(request.user!.userId, query);
 
       return reply.code(200).send(
         formatPaginatedResponse(request, "Conversations retrieved successfully", items, {
@@ -172,7 +175,7 @@ export const conversationRoutes: FastifyPluginAsync = async (fastify) => {
     },
     async (request, reply) => {
       const { id } = getConversationParamsSchema.parse(request.params);
-      const conversation = await conversationService.getConversationWithHistory(id);
+      const conversation = await conversationService.getConversationWithHistory(request.user!.userId, id);
 
       return reply.code(200).send(
         formatSuccessResponse(request, "Conversation retrieved successfully", conversation),
@@ -220,7 +223,7 @@ export const conversationRoutes: FastifyPluginAsync = async (fastify) => {
     },
     async (request, reply) => {
       const input = createConversationSchema.parse(request.body);
-      const created = await conversationService.createConversation(input);
+      const created = await conversationService.createConversation(request.user!.userId, input);
 
       return reply.code(201).send(
         formatSuccessResponse(request, "Conversation created successfully", created),
@@ -260,7 +263,7 @@ export const conversationRoutes: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       const { id } = getConversationParamsSchema.parse(request.params);
       const input = updateConversationSchema.parse(request.body);
-      const updated = await conversationService.updateConversation(id, input);
+      const updated = await conversationService.updateConversation(request.user!.userId, id, input);
 
       return reply.code(200).send(
         formatSuccessResponse(request, "Conversation updated successfully", updated),
@@ -302,7 +305,7 @@ export const conversationRoutes: FastifyPluginAsync = async (fastify) => {
     },
     async (request, reply) => {
       const { id } = getConversationParamsSchema.parse(request.params);
-      await conversationService.deleteConversation(id);
+      await conversationService.deleteConversation(request.user!.userId, id);
 
       return reply.code(200).send(
         formatSuccessResponse(request, "Conversation deleted successfully", { id }),

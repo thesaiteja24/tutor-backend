@@ -62,19 +62,15 @@ describe("AI English Communication Tutor API Suite", () => {
   });
 
   describe("3. Users Module", () => {
-    it("GET /api/v1/users/me -> retrieves default student context", async () => {
+    it("GET /api/v1/users/me -> requires authentication", async () => {
       const response = await app.inject({
         method: "GET",
         url: "/api/v1/users/me",
       });
 
       const json = response.json();
-      if (response.statusCode === 200) {
-        expect(json.success).toBe(true);
-        expect(json.data.email).toBeDefined();
-      } else {
-        expect(json.success).toBe(false);
-      }
+      expect(response.statusCode).toBe(401);
+      expect(json.success).toBe(false);
     });
 
     it("GET /api/v1/users/me/analytics -> retrieves aggregated analytics summary & weekly metrics", async () => {
@@ -83,15 +79,8 @@ describe("AI English Communication Tutor API Suite", () => {
         url: "/api/v1/users/me/analytics",
       });
 
-      expect(response.statusCode).toBe(200);
-      const json = response.json();
-      expect(json.success).toBe(true);
-      expect(json.data.summary).toBeDefined();
-      expect(json.data.today).toBeDefined();
-      expect(json.data.streak).toBeDefined();
-      expect(json.data.skills).toBeDefined();
-      expect(Array.isArray(json.data.streak.weeklyDays)).toBe(true);
-      expect(Array.isArray(json.data.recentHistory)).toBe(true);
+      expect(response.statusCode).toBe(401);
+      expect(response.json().success).toBe(false);
     });
 
     it("GET /api/v1/users/:id -> returns 400 for invalid UUID", async () => {
@@ -115,13 +104,8 @@ describe("AI English Communication Tutor API Suite", () => {
       });
 
       const json = response.json();
-      if (response.statusCode === 200) {
-        expect(json.success).toBe(true);
-        expect(Array.isArray(json.data)).toBe(true);
-        expect(json.meta.limit).toBe(5);
-      } else {
-        expect(json.success).toBe(false);
-      }
+      expect(response.statusCode).toBe(401);
+      expect(json.success).toBe(false);
     });
 
     it("GET /api/v1/conversations/:id -> returns 400 for non-UUID param", async () => {

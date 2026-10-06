@@ -8,6 +8,7 @@ import { BadRequestError, NotFoundError } from "@/shared/errors/index.ts";
 
 export interface StreamingInteractionParams {
   conversationId: string;
+  userId?: string;
   input: { type: "audio"; buffer: Buffer; mimeType?: string } | { type: "text"; text: string };
   overrideVoiceId?: string;
   onTranscript?: (transcript: string) => void;
@@ -22,7 +23,7 @@ export interface StreamingDependencies {
   tts: TTSProvider;
   conversations: Pick<
     ConversationService,
-    "getConversationById" | "beginUserTurn" | "getRecentMessages" | "completeUserTurn" | "failUserTurn"
+    "getConversationById" | "getConversationForUser" | "beginUserTurn" | "getRecentMessages" | "completeUserTurn" | "failUserTurn"
   >;
   users: Pick<UserService, "getUserById">;
 }
@@ -33,7 +34,9 @@ export async function processStreamingTurn(
 ) {
   const totalStart = performance.now();
 
-  const conversation = await deps.conversations.getConversationById(params.conversationId);
+  const conversation = params.userId
+    ? await deps.conversations.getConversationForUser(params.userId, params.conversationId)
+    : await deps.conversations.getConversationById(params.conversationId);
   if (!conversation) {
     throw new NotFoundError(`Conversation with ID '${params.conversationId}' not found`);
   }

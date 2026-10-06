@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 
 import { authenticateUser, requireRole } from "@/modules/auth/auth.middleware.ts";
+import { uuidv7Schema } from "@/shared/schemas/identifiers.ts";
 import { formatPaginatedResponse,formatSuccessResponse } from "@/shared/utils/response.ts";
 
 import {
@@ -11,8 +12,8 @@ import {
 } from "./admin-users.schemas.ts";
 import { adminUsersService } from "./admin-users.services.ts";
 
-const userIdParamSchema = z.object({
-  id: z.string().uuid("User ID must be a valid UUID"),
+const userIdParamSchema = z.strictObject({
+  id: uuidv7Schema,
 });
 
 export const adminUserRoutes: FastifyPluginAsync = async (fastify) => {
@@ -70,14 +71,14 @@ export const adminUserRoutes: FastifyPluginAsync = async (fastify) => {
       schema: {
         tags: ["Admin Users"],
         summary: "Promote or change user role",
-        description: "Allows superadmin to assign user, superadmin, or org_admin role to any account.",
+        description: "Allows superadmin to assign user or superadmin role to an account. Organization-admin promotion is only available through the organization approval workflow.",
         security: [{ bearerAuth: [] }],
       },
     },
     async (request, reply) => {
       const { id } = userIdParamSchema.parse(request.params);
       const input = updateAdminUserRoleSchema.parse(request.body);
-      const updated = await adminUsersService.updateUserRole(id, input);
+      const updated = await adminUsersService.updateUserRole(id, input, request.user!.userId);
       return reply.code(200).send(
         formatSuccessResponse(request, "User role updated successfully", updated),
       );
@@ -98,7 +99,7 @@ export const adminUserRoutes: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       const { id } = userIdParamSchema.parse(request.params);
       const input = updateAdminUserStatusSchema.parse(request.body);
-      const updated = await adminUsersService.updateUserStatus(id, input);
+      const updated = await adminUsersService.updateUserStatus(id, input, request.user!.userId);
       return reply.code(200).send(
         formatSuccessResponse(request, "User status updated successfully", updated),
       );

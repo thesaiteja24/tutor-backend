@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync } from "fastify";
 
+import { authenticateUser } from "@/modules/auth/auth.middleware.ts";
 import { voiceTutorService } from "@/modules/voice-tutor/voice-tutor.services.ts";
 import { BadRequestError } from "@/shared/errors/index.ts";
 import { formatSuccessResponse } from "@/shared/utils/response.ts";
@@ -90,6 +91,8 @@ const voiceInteractionResponseDoc = {
 };
 
 export const voiceTutorRoutes: FastifyPluginAsync = async (fastify) => {
+  fastify.addHook("preHandler", authenticateUser);
+
   // POST /api/v1/voice-tutor/conversations/:conversationId/interact (Multipart Audio Push-to-Talk)
   fastify.post(
     "/conversations/:conversationId/interact",
@@ -149,6 +152,7 @@ export const voiceTutorRoutes: FastifyPluginAsync = async (fastify) => {
           conversationId,
           audioBuffer,
           mimeType,
+          { userId: request.user!.userId },
         );
 
         return reply.code(200).send(
@@ -161,7 +165,7 @@ export const voiceTutorRoutes: FastifyPluginAsync = async (fastify) => {
       const result = await voiceTutorService.processTextInteraction(
         conversationId,
         body.text ?? `Selected option: ${body.optionLabel ?? ""}`,
-        { overrideVoiceId: body.voiceId },
+        { overrideVoiceId: body.voiceId, userId: request.user!.userId },
       );
 
       return reply.code(200).send(
@@ -208,7 +212,7 @@ export const voiceTutorRoutes: FastifyPluginAsync = async (fastify) => {
       const result = await voiceTutorService.processTextInteraction(
         conversationId,
         body.text ?? `Selected option: ${body.optionLabel ?? ""}`,
-        { overrideVoiceId: body.voiceId },
+        { overrideVoiceId: body.voiceId, userId: request.user!.userId },
       );
 
       return reply.code(200).send(
@@ -277,6 +281,7 @@ export const voiceTutorRoutes: FastifyPluginAsync = async (fastify) => {
 
           const result = await voiceTutorService.processStreamingInteraction({
             conversationId,
+            userId: request.user!.userId,
             input,
             overrideVoiceId: payload?.voiceId,
             isCancelled: () => isCancelled,

@@ -19,7 +19,7 @@ import { processStreamingTurn, type StreamingInteractionParams } from "./voice-t
 type VoiceTutorDependencies = {
   conversations: Pick<
     ConversationService,
-    "getConversationById" | "beginUserTurn" | "getRecentMessages" | "completeUserTurn" | "failUserTurn"
+    "getConversationById" | "getConversationForUser" | "beginUserTurn" | "getRecentMessages" | "completeUserTurn" | "failUserTurn"
   >;
   users: Pick<UserService, "getUserById">;
 };
@@ -47,12 +47,14 @@ export class VoiceTutorService {
     conversationId: string,
     audioBuffer: Buffer,
     mimeType: string,
-    options?: { overrideVoiceId?: string },
+    options?: { overrideVoiceId?: string; userId?: string },
   ) {
     const totalStart = performance.now();
 
     // 1. Fetch conversation & persona
-    const conversation = await this.dependencies.conversations.getConversationById(conversationId);
+    const conversation = options?.userId
+      ? await this.dependencies.conversations.getConversationForUser(options.userId, conversationId)
+      : await this.dependencies.conversations.getConversationById(conversationId);
     if (!conversation) {
       throw new NotFoundError(`Conversation with ID '${conversationId}' not found`);
     }
@@ -179,11 +181,13 @@ export class VoiceTutorService {
   async processTextInteraction(
     conversationId: string,
     text: string,
-    options?: { overrideVoiceId?: string },
+    options?: { overrideVoiceId?: string; userId?: string },
   ) {
     const totalStart = performance.now();
 
-    const conversation = await this.dependencies.conversations.getConversationById(conversationId);
+    const conversation = options?.userId
+      ? await this.dependencies.conversations.getConversationForUser(options.userId, conversationId)
+      : await this.dependencies.conversations.getConversationById(conversationId);
     if (!conversation) {
       throw new NotFoundError(`Conversation with ID '${conversationId}' not found`);
     }

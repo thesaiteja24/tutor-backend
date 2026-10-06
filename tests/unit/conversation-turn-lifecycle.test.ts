@@ -116,12 +116,35 @@ describe("conversation turn lifecycle", () => {
       }),
     };
 
+    const mockDomain = {
+      personas: {
+        getPersonaById: async () => ({
+          id: "01950000-0000-7000-8000-000000000001",
+          name: "Maya",
+          voiceId: "priya",
+          systemPrompt: "You are Maya, a friendly English tutor.",
+        }),
+      },
+      practiceModes: {
+        getPracticeModeById: async () => ({
+          id: "01950000-0000-7000-9000-000000000001",
+          name: "AI Live Tutor",
+          systemPrompt: "Practice conversational English.",
+        }),
+        listPracticeModes: async () => ({ items: [], total: 0 }),
+      },
+      users: {
+        getUserById: async () => ({ nativeLanguage: "te", englishLevel: "intermediate" }),
+      },
+    };
+
     const service = new ConversationService(
       repo as unknown as ConversationRepository,
       mockLlm as unknown as LLMProvider,
       mockTts as unknown as TTSProvider,
+      mockDomain as unknown as ConstructorParameters<typeof ConversationService>[3],
     );
-    const result = await service.createConversation({
+    const result = await service.createConversation("01950000-0000-7000-8000-000000000020", {
       personaId: "01950000-0000-7000-8000-000000000001",
       practiceModeId: "01950000-0000-7000-9000-000000000001",
     });

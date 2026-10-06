@@ -47,16 +47,16 @@ export class AdminUsersService {
     return this.sanitizeUser(user);
   }
 
-  async updateUserRole(id: string, input: UpdateAdminUserRoleInput) {
-    const updated = await this.repo.updateRole(id, input.role);
+  async updateUserRole(id: string, input: UpdateAdminUserRoleInput, actorId: string) {
+    const updated = await this.repo.updateRole(id, input.role, actorId);
     if (!updated) {
       throw new NotFoundError("User account not found.");
     }
     return this.sanitizeUser(updated);
   }
 
-  async updateUserStatus(id: string, input: UpdateAdminUserStatusInput) {
-    const updated = await this.repo.updateStatus(id, input.isActive);
+  async updateUserStatus(id: string, input: UpdateAdminUserStatusInput, actorId: string) {
+    const updated = await this.repo.updateStatus(id, input.isActive, actorId);
     if (!updated) {
       throw new NotFoundError("User account not found.");
     }

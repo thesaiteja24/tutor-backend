@@ -1,14 +1,15 @@
 import { z } from "zod";
 
 import { latencyMetricsSchema } from "@/modules/conversations/conversation.schemas.ts";
+import { uuidv7Schema } from "@/shared/schemas/identifiers.ts";
 
-export const voiceInteractParamsSchema = z.object({
-  conversationId: z.string().uuid("Invalid conversation ID"),
+export const voiceInteractParamsSchema = z.strictObject({
+  conversationId: uuidv7Schema,
 });
 
-export const textInteractBodySchema = z.object({
-  text: z.string().trim().min(1, "Text is required").optional(),
-  voiceId: z.string().optional(),
+export const textInteractBodySchema = z.strictObject({
+  text: z.string().trim().min(1, "Text is required").max(2000).optional(),
+  voiceId: z.string().trim().min(1).max(50).optional(),
   activityId: z.string().trim().min(1).max(100).optional(),
   optionId: z.string().trim().min(1).max(100).optional(),
   optionLabel: z.string().trim().min(1).max(160).optional(),
@@ -23,13 +24,13 @@ export const textInteractBodySchema = z.object({
   }
 });
 
-export const voiceInteractResponseSchema = z.object({
+export const voiceInteractResponseSchema = z.strictObject({
   userTranscript: z.string(),
   audioBase64: z.string(),
   audioFormat: z.string(),
   latencyMetrics: latencyMetricsSchema,
-  userMessageId: z.string().uuid(),
-  assistantMessageId: z.string().uuid(),
+  userMessageId: uuidv7Schema,
+  assistantMessageId: uuidv7Schema,
   turn: z.unknown().optional(),
 });
 

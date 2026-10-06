@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const responseMetaSchema = z.object({
+export const responseMetaSchema = z.strictObject({
   timestamp: z.string(),
   requestId: z.string(),
 });
@@ -14,22 +14,22 @@ export const paginatedMetaSchema = responseMetaSchema.extend({
   nextCursor: z.string().optional(),
 });
 
-export const errorDetailSchema = z.object({
+export const errorDetailSchema = z.strictObject({
   code: z.string(),
   field: z.string().optional(),
   message: z.string(),
   details: z.unknown().optional().nullable(),
 });
 
-export const errorEnvelopeSchema = z.object({
+export const errorEnvelopeSchema = z.strictObject({
   success: z.literal(false),
   message: z.string(),
   errors: z.array(errorDetailSchema),
   meta: responseMetaSchema,
 });
 
-export function createSuccessEnvelopeSchema<T extends z.ZodTypeAny>(dataSchema: T) {
-  return z.object({
+export function createSuccessEnvelopeSchema<T extends z.ZodType>(dataSchema: T) {
+  return z.strictObject({
     success: z.literal(true),
     message: z.string(),
     data: dataSchema,
@@ -37,8 +37,8 @@ export function createSuccessEnvelopeSchema<T extends z.ZodTypeAny>(dataSchema: 
   });
 }
 
-export function createPaginatedEnvelopeSchema<T extends z.ZodTypeAny>(itemSchema: T) {
-  return z.object({
+export function createPaginatedEnvelopeSchema<T extends z.ZodType>(itemSchema: T) {
+  return z.strictObject({
     success: z.literal(true),
     message: z.string(),
     data: z.array(itemSchema),

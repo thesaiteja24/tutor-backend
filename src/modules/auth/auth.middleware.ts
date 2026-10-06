@@ -1,6 +1,7 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 
 import type { UserRole } from "@/database/schema/users.ts";
+import { authRepository } from "@/modules/auth/auth.repositories.ts";
 import { type UserJwtPayload,verifyJwtToken } from "@/shared/auth/jwt.ts";
 import { ForbiddenError, UnauthorizedError } from "@/shared/errors/index.ts";
 
@@ -21,7 +22,22 @@ export async function authenticateUser(request: FastifyRequest, _reply: FastifyR
 
   const token = authHeader.slice(7).trim();
   const payload = verifyJwtToken(token);
-  request.user = payload;
+  const user = await authRepository.findUserById(payload.userId);
+  if (!user || !user.isActive) {
+    throw new UnauthorizedError("This account is no longer active.");
+  }
+
+  // The database is authoritative for role, organization, and profile state.
+  // JWT claims are only used to identify the account and are not trusted for authorization.
+  request.user = {
+    userId: user.id,
+    email: user.email,
+    displayName: user.displayName,
+    role: user.role,
+    orgId: user.orgId,
+    nativeLanguage: user.nativeLanguage,
+    englishLevel: user.englishLevel,
+  };
 }
 
 /**

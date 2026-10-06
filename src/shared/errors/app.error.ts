@@ -62,6 +62,12 @@ export class TooManyRequestsError extends AppError {
   }
 }
 
+export class ServiceUnavailableError extends AppError {
+  constructor(message: string = "The service is temporarily unavailable. Please try again later.") {
+    super(message, 503, [{ code: "service_unavailable", message }]);
+  }
+}
+
 export class RateLimitError extends AppError {
   constructor(message: string = "Rate limit exceeded") {
     super(message, 429, [{ code: "rate_limit_exceeded", message }]);

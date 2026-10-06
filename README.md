@@ -115,7 +115,7 @@ Visit the interactive Scalar API documentation at:
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `GET` | `/me` | Retrieve current default student profile. |
+| `GET` | `/me` | Retrieve the authenticated student profile. |
 | `PATCH` | `/me` | Update student profile (native language, English level, display name). |
 | `GET` | `/:id` | Get user by UUID. |
 | `PATCH` | `/:id` | Update user by UUID. |

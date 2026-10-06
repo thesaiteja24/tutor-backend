@@ -2,9 +2,9 @@ import fs from "node:fs";
 import path from "node:path";
 
 import type { TranscriptMetadata, TurnFailureData } from "@/database/schema/messages.ts";
-import { personaService } from "@/modules/personas/index.ts";
-import { practiceModeService } from "@/modules/practice-modes/index.ts";
-import { userService } from "@/modules/users/index.ts";
+import { type PersonaService,personaService } from "@/modules/personas/index.ts";
+import { type PracticeModeService,practiceModeService } from "@/modules/practice-modes/index.ts";
+import { type UserService, userService } from "@/modules/users/index.ts";
 import { createLLMProvider, type LLMProvider } from "@/shared/ai/llm.adapter.ts";
 import { createTTSProvider, type TTSProvider } from "@/shared/ai/tts.adapter.ts";
 import {
@@ -21,15 +21,26 @@ import type {
   UpdateConversationInput,
 } from "./conversation.schemas.ts";
 
+type ConversationDomainDependencies = {
+  personas: Pick<PersonaService, "getPersonaById">;
+  practiceModes: Pick<PracticeModeService, "getPracticeModeById" | "listPracticeModes">;
+  users: Pick<UserService, "getUserById">;
+};
+
 export class ConversationService {
   constructor(
     private readonly repo: ConversationRepository = conversationRepository,
     private readonly llm: LLMProvider = createLLMProvider(),
     private readonly tts: TTSProvider = createTTSProvider(),
+    private readonly domain: ConversationDomainDependencies = {
+      personas: personaService,
+      practiceModes: practiceModeService,
+      users: userService,
+    },
   ) {}
 
-  async listConversations(query: ListConversationsQuery) {
-    return this.repo.findMany(query);
+  async listConversations(userId: string, query: ListConversationsQuery) {
+    return this.repo.findManyForUser(userId, query);
   }
 
   async getConversationById(id: string) {
@@ -40,8 +51,16 @@ export class ConversationService {
     return conversation;
   }
 
-  async getConversationWithHistory(id: string, limit: number = 50) {
-    const conversation = await this.repo.findWithMessages(id, limit);
+  async getConversationForUser(userId: string, id: string) {
+    const conversation = await this.repo.findByIdForUser(id, userId);
+    if (!conversation) {
+      throw new NotFoundError(`Conversation with ID '${id}' not found`);
+    }
+    return conversation;
+  }
+
+  async getConversationWithHistory(userId: string, id: string, limit: number = 50) {
+    const conversation = await this.repo.findWithMessagesForUser(id, userId, limit);
     if (!conversation) {
       throw new NotFoundError(`Conversation with ID '${id}' not found`);
     }
@@ -58,31 +77,23 @@ export class ConversationService {
     };
   }
 
-  async createConversation(input: CreateConversationInput) {
+  async createConversation(userId: string, input: CreateConversationInput) {
     // Validate persona exists
-    const persona = await personaService.getPersonaById(input.personaId);
+    const persona = await this.domain.personas.getPersonaById(input.personaId);
 
     // Validate or default practice mode
     let practiceMode;
     if (input.practiceModeId) {
-      practiceMode = await practiceModeService.getPracticeModeById(input.practiceModeId);
+      practiceMode = await this.domain.practiceModes.getPracticeModeById(input.practiceModeId);
     } else {
-      const modesList = await practiceModeService.listPracticeModes({ limit: 1, offset: 0 });
+      const modesList = await this.domain.practiceModes.listPracticeModes({ limit: 1, offset: 0 });
       if (modesList.items.length === 0) {
         throw new NotFoundError("No active practice modes available");
       }
       practiceMode = modesList.items[0]!;
     }
 
-    // Get user (default user if not supplied)
-    let userId = input.userId;
-    let user;
-    if (!userId) {
-      user = await userService.getDefaultUser();
-      userId = user.id;
-    } else {
-      user = await userService.getUserById(userId);
-    }
+    const user = await this.domain.users.getUserById(userId);
 
     const nativeLanguage = user?.nativeLanguage || "te";
     const englishLevel = user?.englishLevel || "intermediate";
@@ -149,18 +160,21 @@ export class ConversationService {
     };
   }
 
-  async updateConversation(id: string, input: UpdateConversationInput) {
-    await this.getConversationById(id);
+  async updateConversation(userId: string, id: string, input: UpdateConversationInput) {
+    const conversation = await this.repo.findByIdForUser(id, userId);
+    if (!conversation) {
+      throw new NotFoundError(`Conversation with ID '${id}' not found`);
+    }
 
-    const updated = await this.repo.update(id, input);
+    const updated = await this.repo.updateForUser(id, userId, input);
     if (!updated) {
       throw new NotFoundError(`Conversation with ID '${id}' not found`);
     }
     return updated;
   }
 
-  async deleteConversation(id: string) {
-    const deleted = await this.repo.softDelete(id);
+  async deleteConversation(userId: string, id: string) {
+    const deleted = await this.repo.softDeleteForUser(id, userId);
     if (!deleted) {
       throw new NotFoundError(`Conversation with ID '${id}' not found`);
     }

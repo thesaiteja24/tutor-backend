@@ -8,10 +8,11 @@ import {
   updatePersonaSchema,
 } from "@/modules/personas/persona.schemas.ts";
 import { personaService } from "@/modules/personas/persona.services.ts";
+import { uuidv7Schema } from "@/shared/schemas/identifiers.ts";
 import { formatPaginatedResponse,formatSuccessResponse } from "@/shared/utils/response.ts";
 
-const personaIdParamSchema = z.object({
-  id: z.string().uuid("Persona ID must be a valid UUID"),
+const personaIdParamSchema = z.strictObject({
+  id: uuidv7Schema,
 });
 
 export const adminPersonaRoutes: FastifyPluginAsync = async (fastify) => {

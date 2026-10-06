@@ -12,6 +12,7 @@ import {
   ConflictError,
   ForbiddenError,
   NotFoundError,
+  ServiceUnavailableError,
   TooManyRequestsError,
   UnauthorizedError,
 } from "@/shared/errors/index.ts";
@@ -53,6 +54,13 @@ export class AuthService {
     };
   }
 
+  private async sendOtpEmail(send: () => Promise<boolean>, otpId: string): Promise<void> {
+    const delivered = await send();
+    if (delivered) return;
+    await this.repo.markOtpUsed(otpId);
+    throw new ServiceUnavailableError("We could not send the verification email. Please try again shortly.");
+  }
+
   async register(input: RegisterInput) {
     const existingUser = await this.repo.findUserByEmail(input.email);
     if (existingUser && existingUser.isEmailVerified) {
@@ -74,6 +82,8 @@ export class AuthService {
         email: input.email,
         passwordHash,
         displayName: input.displayName,
+        role: "user",
+        orgId: null,
         nativeLanguage: input.nativeLanguage,
         englishLevel: input.englishLevel,
         isEmailVerified: false,
@@ -87,7 +97,7 @@ export class AuthService {
     const otpHash = await hashOtp(otp);
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-    await this.repo.createOtp({
+    const otpRecord = await this.repo.createOtp({
       email: input.email,
       otpHash,
       purpose: "email_verification",
@@ -95,7 +105,10 @@ export class AuthService {
     });
 
     // Send verification email
-    await this.email.sendVerificationOtp(input.email, input.displayName, otp);
+    await this.sendOtpEmail(
+      () => this.email.sendVerificationOtp(input.email, input.displayName, otp),
+      otpRecord.id,
+    );
 
     return {
       email: input.email,
@@ -182,7 +195,7 @@ export class AuthService {
     const otpHash = await hashOtp(otp);
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-    await this.repo.createOtp({
+    const otpRecord = await this.repo.createOtp({
       email: input.email,
       otpHash,
       purpose: input.purpose,
@@ -190,9 +203,15 @@ export class AuthService {
     });
 
     if (input.purpose === "email_verification") {
-      await this.email.sendVerificationOtp(user.email, user.displayName, otp);
+      await this.sendOtpEmail(
+        () => this.email.sendVerificationOtp(user.email, user.displayName, otp),
+        otpRecord.id,
+      );
     } else {
-      await this.email.sendPasswordResetOtp(user.email, user.displayName, otp);
+      await this.sendOtpEmail(
+        () => this.email.sendPasswordResetOtp(user.email, user.displayName, otp),
+        otpRecord.id,
+      );
     }
 
     return {
@@ -216,13 +235,16 @@ export class AuthService {
       // Generate and send a fresh OTP for convenience
       const otp = generateNumericOtp();
       const otpHash = await hashOtp(otp);
-      await this.repo.createOtp({
+      const otpRecord = await this.repo.createOtp({
         email: user.email,
         otpHash,
         purpose: "email_verification",
         expiresAt: new Date(Date.now() + 10 * 60 * 1000),
       });
-      this.email.sendVerificationOtp(user.email, user.displayName, otp).catch(() => {});
+      await this.sendOtpEmail(
+        () => this.email.sendVerificationOtp(user.email, user.displayName, otp),
+        otpRecord.id,
+      );
 
       throw new ForbiddenError(
         "Your email is not verified yet. A new verification code has been sent to your email address.",
@@ -269,14 +291,17 @@ export class AuthService {
     const otpHash = await hashOtp(otp);
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-    await this.repo.createOtp({
+    const otpRecord = await this.repo.createOtp({
       email: user.email,
       otpHash,
       purpose: "password_reset",
       expiresAt,
     });
 
-    await this.email.sendPasswordResetOtp(user.email, user.displayName, otp);
+    await this.sendOtpEmail(
+      () => this.email.sendPasswordResetOtp(user.email, user.displayName, otp),
+      otpRecord.id,
+    );
 
     return {
       success: true,
@@ -374,14 +399,17 @@ export class AuthService {
     const otpHash = await hashOtp(otp);
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-    await this.repo.createOtp({
+    const otpRecord = await this.repo.createOtp({
       email: input.newEmail,
       otpHash,
       purpose: "email_change",
       expiresAt,
     });
 
-    await this.email.sendEmailChangeOtp(input.newEmail, user.displayName, otp);
+    await this.sendOtpEmail(
+      () => this.email.sendEmailChangeOtp(input.newEmail, user.displayName, otp),
+      otpRecord.id,
+    );
 
     return {
       success: true,

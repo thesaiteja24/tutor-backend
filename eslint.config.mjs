@@ -57,6 +57,7 @@ export default tseslint.config(
 
       // --- Strict Type Safety & Zero Any ---
       "@typescript-eslint/no-explicit-any": "error",
+      "@typescript-eslint/no-deprecated": "error",
       "@typescript-eslint/no-unused-vars": "off", // Handled by unused-imports/no-unused-vars
 
       // --- Auto-Removing Unused Imports & Variables ---

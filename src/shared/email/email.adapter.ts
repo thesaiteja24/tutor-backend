@@ -27,6 +27,9 @@ export class EmailService {
         host: env.SMTP_HOST,
         port: env.SMTP_PORT,
         secure: env.SMTP_SECURE,
+        connectionTimeout: 10000,
+        greetingTimeout: 10000,
+        socketTimeout: 15000,
         auth: {
           user: env.SMTP_USER,
           pass: env.SMTP_PASS,
@@ -50,7 +53,8 @@ export class EmailService {
         });
         devLogger.info("EmailService:Sent", `Dispatched email to ${options.to} [Subject: ${options.subject}]`);
       } else {
-        devLogger.info("EmailService:Mock", `[EMAIL TO ${options.to}] Subject: "${options.subject}"\n${options.text}`);
+        devLogger.error("EmailService:Error", "SMTP is not configured; email was not sent.");
+        return false;
       }
       return true;
     } catch (err: unknown) {

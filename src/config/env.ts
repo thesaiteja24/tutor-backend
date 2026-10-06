@@ -3,11 +3,17 @@ import { z } from "zod";
 
 config();
 
+// Process environments contain unrelated OS/CI variables; validate declared app keys
+// without rejecting those external variables.
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
   PORT: z.coerce.number().default(3000),
   HOST: z.string().default("0.0.0.0"),
   DATABASE_URL: z.string().default("postgres://postgres:postgres@localhost:5432/tutor_db"),
+
+  // Local/deployment database seed credentials. Required by db:seed, not by the API server.
+  ADMIN_EMAIL: z.email().optional(),
+  ADMIN_PASS: z.string().min(8).optional(),
 
   // Sarvam Saaras v3 STT
   SARVAM_API_KEY: z.string().optional(),
@@ -47,7 +53,7 @@ const envSchema = z.object({
 const parsedEnv = envSchema.safeParse(process.env);
 
 if (!parsedEnv.success) {
-  console.error("❌ Invalid environment variables:", parsedEnv.error.flatten().fieldErrors);
+  console.error("❌ Invalid environment variables:", z.treeifyError(parsedEnv.error));
   throw new Error("Invalid environment variables");
 }
 

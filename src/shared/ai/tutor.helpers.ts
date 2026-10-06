@@ -1,35 +1,35 @@
 import { z } from "zod";
 
 export const tutorTurnOptionSchema = z.union([
-  z.string().transform((text) => ({ id: 0, text })),
-  z.object({
-    id: z.union([z.number(), z.string()]),
-    text: z.string(),
+  z.string().trim().min(1).max(200).transform((text) => ({ id: 0, text })),
+  z.strictObject({
+    id: z.union([z.number().int().positive(), z.string().trim().min(1).max(100)]),
+    text: z.string().trim().min(1).max(200),
   }),
 ]);
 
-export const tutorTurnSchema = z.object({
-  content: z.string(),
-  special: z.string().nullable().optional(),
-  copiable: z.string().nullable().optional(),
+export const tutorTurnSchema = z.strictObject({
+  content: z.string().trim().min(1).max(2000),
+  special: z.string().trim().max(2000).nullable().optional(),
+  copiable: z.string().trim().max(5000).nullable().optional(),
   options: z
     .array(tutorTurnOptionSchema)
     .transform((opts) => opts.map((opt, i) => ({ id: opt.id || i + 1, text: opt.text })))
     .nullable()
     .optional(),
   correction: z
-    .object({
-      original: z.string(),
-      naturalRewrite: z.string(),
-      explanation: z.string().nullable().optional(),
+    .strictObject({
+      original: z.string().trim().min(1).max(500),
+      naturalRewrite: z.string().trim().min(1).max(500),
+      explanation: z.string().trim().max(1000).nullable().optional(),
     })
     .nullable()
     .optional(),
   learningState: z
-    .object({
-      topic: z.string().nullable().optional(),
+    .strictObject({
+      topic: z.string().trim().max(200).nullable().optional(),
       introducedTerms: z.array(z.string()).default([]),
-      targetSkill: z.string().nullable().optional(),
+      targetSkill: z.string().trim().max(100).nullable().optional(),
     })
     .nullable()
     .optional(),

@@ -1,11 +1,13 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { eq } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
+import { uuidv7 } from "uuidv7";
 
 import { buildApp } from "@/app.ts";
+import { env } from "@/config/index.ts";
 import { db } from "@/database/index.ts";
-import { personas } from "@/database/schema/personas.ts";
-import { practiceModes } from "@/database/schema/practice-modes.ts";
+import { personas, practiceModes, users } from "@/database/schema/index.ts";
+import { signJwtToken } from "@/shared/auth/jwt.ts";
 
 describe("Superadmin Studio & User Management Integration Suite", () => {
   let app: FastifyInstance;
@@ -14,6 +16,7 @@ describe("Superadmin Studio & User Management Integration Suite", () => {
   let createdPersonaId: string;
   let createdPracticeModeId: string;
   let targetUserId: string;
+  const targetUserEmail = `admin-test-user.${Date.now()}@tutor.app`;
 
   beforeAll(async () => {
     app = await buildApp();
@@ -24,23 +27,33 @@ describe("Superadmin Studio & User Management Integration Suite", () => {
       method: "POST",
       url: "/api/v1/auth/login",
       payload: {
-        email: "admin@tutor.com",
-        password: "Admin@1234",
+        email: env.ADMIN_EMAIL,
+        password: env.ADMIN_PASS,
       },
     });
     superadminToken = adminLogin.json().data.token;
 
-    // 2. User Token
-    const userLogin = await app.inject({
-      method: "POST",
-      url: "/api/v1/auth/login",
-      payload: {
-        email: "test@tutor.com",
-        password: "Test@1234",
-      },
+    const [targetUser] = await db.insert(users).values({
+      id: uuidv7(),
+      email: targetUserEmail,
+      displayName: "Admin Test User",
+      role: "user",
+      nativeLanguage: "te",
+      englishLevel: "intermediate",
+      isEmailVerified: true,
+      authProvider: "local",
+      isActive: true,
+    }).returning();
+    targetUserId = targetUser!.id;
+    userToken = signJwtToken({
+      userId: targetUserId,
+      email: targetUserEmail,
+      displayName: "Admin Test User",
+      role: "user",
+      orgId: null,
+      nativeLanguage: "te",
+      englishLevel: "intermediate",
     });
-    userToken = userLogin.json().data.token;
-    targetUserId = userLogin.json().data.user.id;
   });
 
   afterAll(async () => {
@@ -50,7 +63,10 @@ describe("Superadmin Studio & User Management Integration Suite", () => {
     if (createdPracticeModeId) {
       await db.delete(practiceModes).where(eq(practiceModes.id, createdPracticeModeId));
     }
-    await app.close();
+    if (targetUserId) {
+      await db.delete(users).where(eq(users.id, targetUserId));
+    }
+    await app?.close();
   });
 
   // --- 1. Personas Prompt Studio ---
@@ -199,7 +215,7 @@ describe("Superadmin Studio & User Management Integration Suite", () => {
     it("GET /api/v1/admin/users -> searches users with pagination and role filter", async () => {
       const res = await app.inject({
         method: "GET",
-        url: "/api/v1/admin/users?q=test&role=user",
+        url: "/api/v1/admin/users?q=Admin%20Test%20User&role=user",
         headers: { authorization: `Bearer ${superadminToken}` },
       });
 
@@ -207,7 +223,7 @@ describe("Superadmin Studio & User Management Integration Suite", () => {
       const json = res.json();
       expect(json.success).toBe(true);
       expect(json.data.length).toBeGreaterThanOrEqual(1);
-      expect(json.data[0].email).toBe("test@tutor.com");
+      expect(json.data[0].email).toBe(targetUserEmail);
     });
 
     it("GET /api/v1/admin/users/:id -> retrieves user profile details", async () => {
@@ -221,19 +237,29 @@ describe("Superadmin Studio & User Management Integration Suite", () => {
       const json = res.json();
       expect(json.success).toBe(true);
       expect(json.data.id).toBe(targetUserId);
-      expect(json.data.email).toBe("test@tutor.com");
+      expect(json.data.email).toBe(targetUserEmail);
     });
 
     it("PATCH /api/v1/admin/users/:id/role -> updates user role", async () => {
-      // 1. Promote to org_admin
-      const promoteRes = await app.inject({
+      // Direct org_admin promotion is intentionally unavailable until the
+      // organization approval workflow is implemented.
+      const blockedOrgAdminRes = await app.inject({
         method: "PATCH",
         url: `/api/v1/admin/users/${targetUserId}/role`,
         headers: { authorization: `Bearer ${superadminToken}` },
         payload: { role: "org_admin" },
       });
+      expect(blockedOrgAdminRes.statusCode).toBe(400);
+
+      // 1. Promote to superadmin
+      const promoteRes = await app.inject({
+        method: "PATCH",
+        url: `/api/v1/admin/users/${targetUserId}/role`,
+        headers: { authorization: `Bearer ${superadminToken}` },
+        payload: { role: "superadmin" },
+      });
       expect(promoteRes.statusCode).toBe(200);
-      expect(promoteRes.json().data.role).toBe("org_admin");
+      expect(promoteRes.json().data.role).toBe("superadmin");
 
       // 2. Revert back to user
       const revertRes = await app.inject({

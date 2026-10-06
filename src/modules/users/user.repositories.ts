@@ -4,7 +4,6 @@ import { db } from "@/database/index.ts";
 import { conversations } from "@/database/schema/conversations.ts";
 import { messages } from "@/database/schema/messages.ts";
 import { type User,users } from "@/database/schema/users.ts";
-import { DEFAULT_USER_ID } from "@/database/seeds/default-user.seed.ts";
 
 export class UserRepository {
   private cache = new Map<string, User>();
@@ -29,23 +28,6 @@ export class UserRepository {
       this.cache.set(user.id, user);
     }
     return user;
-  }
-
-  async findDefaultUser(): Promise<User | null> {
-    const user = await this.findById(DEFAULT_USER_ID);
-    if (user) return user;
-
-    const rows = await db
-      .select()
-      .from(users)
-      .where(isNull(users.deletedAt))
-      .limit(1);
-
-    const found = rows[0] || null;
-    if (found) {
-      this.cache.set(found.id, found);
-    }
-    return found;
   }
 
   async update(id: string, data: Partial<User>): Promise<User | null> {

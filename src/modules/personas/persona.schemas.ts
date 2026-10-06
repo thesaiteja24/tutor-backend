@@ -1,7 +1,9 @@
 import { z } from "zod";
 
-export const personaResponseSchema = z.object({
-  id: z.string().uuid(),
+import { uuidv7Schema } from "@/shared/schemas/identifiers.ts";
+
+export const personaResponseSchema = z.strictObject({
+  id: uuidv7Schema,
   name: z.string(),
   voiceId: z.string(),
   avatarUrl: z.string().nullable().optional(),
@@ -13,7 +15,7 @@ export const personaResponseSchema = z.object({
   updatedAt: z.date().or(z.string()),
 });
 
-export const createPersonaSchema = z.object({
+export const createPersonaSchema = z.strictObject({
   name: z.string().trim().min(2, "Name must be at least 2 characters").max(100),
   voiceId: z.string().trim().min(1).default("shubh"),
   description: z.string().trim().min(5, "Description must be at least 5 characters"),
@@ -22,13 +24,13 @@ export const createPersonaSchema = z.object({
 
 export const updatePersonaSchema = createPersonaSchema.partial();
 
-export const listPersonasQuerySchema = z.object({
+export const listPersonasQuerySchema = z.strictObject({
   limit: z.coerce.number().int().min(1).max(100).default(20),
   offset: z.coerce.number().int().min(0).default(0),
 });
 
-export const getPersonaParamsSchema = z.object({
-  id: z.string().uuid(),
+export const getPersonaParamsSchema = z.strictObject({
+  id: uuidv7Schema,
 });
 
 export type PersonaResponse = z.infer<typeof personaResponseSchema>;

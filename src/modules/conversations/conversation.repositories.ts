@@ -29,8 +29,12 @@ export type ConversationWithHistory = ConversationWithRelations & {
 };
 
 export class ConversationRepository {
-  async findMany(query: ListConversationsQuery): Promise<{ items: Array<typeof conversations.$inferSelect>; total: number }> {
+  async findMany(query: ListConversationsQuery & { userId?: string }): Promise<{ items: Array<typeof conversations.$inferSelect>; total: number }> {
     const conditions: SQL[] = [isNull(conversations.deletedAt)];
+
+    if (query.userId) {
+      conditions.push(eq(conversations.userId, query.userId));
+    }
 
     if (query.status && query.status !== "all") {
       conditions.push(eq(conversations.status, query.status));
@@ -68,9 +72,26 @@ export class ConversationRepository {
     };
   }
 
+  async findManyForUser(userId: string, query: ListConversationsQuery) {
+    return this.findMany({ ...query, userId });
+  }
+
   async findById(id: string): Promise<ConversationWithRelations | null> {
     const row = await db.query.conversations.findMany({
       where: and(eq(conversations.id, id), isNull(conversations.deletedAt)),
+      with: {
+        persona: true,
+        practiceMode: true,
+      },
+      limit: 1,
+    });
+
+    return (row[0] as unknown as ConversationWithRelations) || null;
+  }
+
+  async findByIdForUser(id: string, userId: string): Promise<ConversationWithRelations | null> {
+    const row = await db.query.conversations.findMany({
+      where: and(eq(conversations.id, id), eq(conversations.userId, userId), isNull(conversations.deletedAt)),
       with: {
         persona: true,
         practiceMode: true,
@@ -98,6 +119,20 @@ export class ConversationRepository {
     };
   }
 
+  async findWithMessagesForUser(id: string, userId: string, messageLimit: number = 50): Promise<ConversationWithHistory | null> {
+    const conversation = await this.findByIdForUser(id, userId);
+    if (!conversation) return null;
+
+    const messageList = await db
+      .select()
+      .from(messages)
+      .where(and(eq(messages.conversationId, id), eq(messages.status, "completed"), isNull(messages.deletedAt)))
+      .orderBy(asc(messages.createdAt))
+      .limit(messageLimit);
+
+    return { ...conversation, messages: messageList };
+  }
+
   async create(data: NewConversation): Promise<Conversation> {
     const [row] = await db.insert(conversations).values(data).returning();
     return row!;
@@ -113,11 +148,31 @@ export class ConversationRepository {
     return row || null;
   }
 
+  async updateForUser(id: string, userId: string, data: Partial<NewConversation>): Promise<Conversation | null> {
+    const [row] = await db
+      .update(conversations)
+      .set(data)
+      .where(and(eq(conversations.id, id), eq(conversations.userId, userId), isNull(conversations.deletedAt)))
+      .returning();
+
+    return row || null;
+  }
+
   async softDelete(id: string): Promise<boolean> {
     const [row] = await db
       .update(conversations)
       .set({ deletedAt: new Date(), status: "archived" })
       .where(and(eq(conversations.id, id), isNull(conversations.deletedAt)))
+      .returning();
+
+    return !!row;
+  }
+
+  async softDeleteForUser(id: string, userId: string): Promise<boolean> {
+    const [row] = await db
+      .update(conversations)
+      .set({ deletedAt: new Date(), status: "archived" })
+      .where(and(eq(conversations.id, id), eq(conversations.userId, userId), isNull(conversations.deletedAt)))
       .returning();
 
     return !!row;

@@ -8,10 +8,11 @@ import {
   updatePracticeModeSchema,
 } from "@/modules/practice-modes/practice-mode.schemas.ts";
 import { practiceModeService } from "@/modules/practice-modes/practice-mode.services.ts";
+import { uuidv7Schema } from "@/shared/schemas/identifiers.ts";
 import { formatPaginatedResponse,formatSuccessResponse } from "@/shared/utils/response.ts";
 
-const practiceModeIdParamSchema = z.object({
-  id: z.string().uuid("Practice Mode ID must be a valid UUID"),
+const practiceModeIdParamSchema = z.strictObject({
+  id: uuidv7Schema,
 });
 
 export const adminPracticeModeRoutes: FastifyPluginAsync = async (fastify) => {
