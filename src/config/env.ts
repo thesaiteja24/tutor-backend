@@ -48,6 +48,7 @@ const envSchema = z.object({
   SMTP_PASS: z.string().optional(),
   SMTP_SECURE: z.coerce.boolean().default(false),
   SMTP_FROM: z.string().default("AI English Tutor <support@tutor.app>"),
+  ORGANIZATION_REQUEST_REMINDER_INTERVAL_MS: z.coerce.number().int().min(60000).default(60 * 60 * 1000),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);

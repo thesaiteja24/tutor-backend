@@ -6,6 +6,12 @@ import { devLogger } from "@/shared/utils/dev-logger.ts";
 import { renderEmailChangeOtpEmail } from "./templates/email-change-otp.template.ts";
 import { renderEmailChangedAlertEmail } from "./templates/email-changed-alert.template.ts";
 import { renderNewLoginAlertEmail } from "./templates/new-login-alert.template.ts";
+import {
+  renderOrganizationAdminNotificationEmail,
+  renderOrganizationRequestApprovedEmail,
+  renderOrganizationRequestRejectedEmail,
+  renderOrganizationRequestSubmittedEmail,
+} from "./templates/organization-request.template.ts";
 import { renderPasswordChangedEmail } from "./templates/password-changed.template.ts";
 import { renderPasswordResetOtpEmail } from "./templates/password-reset-otp.template.ts";
 import { renderVerificationOtpEmail } from "./templates/verification-otp.template.ts";
@@ -149,6 +155,26 @@ export class EmailService {
       html: rendered.html,
       text: rendered.text,
     });
+  }
+
+  async sendOrganizationRequestSubmitted(email: string, displayName: string, organizationName: string): Promise<boolean> {
+    const rendered = renderOrganizationRequestSubmittedEmail({ displayName, organizationName });
+    return this.sendMail({ to: email, subject: rendered.subject, html: rendered.html, text: rendered.text });
+  }
+
+  async sendOrganizationRequestApproved(email: string, displayName: string, organizationName: string): Promise<boolean> {
+    const rendered = renderOrganizationRequestApprovedEmail({ displayName, organizationName });
+    return this.sendMail({ to: email, subject: rendered.subject, html: rendered.html, text: rendered.text });
+  }
+
+  async sendOrganizationRequestRejected(email: string, displayName: string, organizationName: string, reason?: string): Promise<boolean> {
+    const rendered = renderOrganizationRequestRejectedEmail({ displayName, organizationName, reason });
+    return this.sendMail({ to: email, subject: rendered.subject, html: rendered.html, text: rendered.text });
+  }
+
+  async sendOrganizationAdminNotification(email: string, displayName: string, subject: string, body: string): Promise<boolean> {
+    const rendered = renderOrganizationAdminNotificationEmail({ displayName, subject, body });
+    return this.sendMail({ to: email, subject: rendered.subject, html: rendered.html, text: rendered.text });
   }
 }
 

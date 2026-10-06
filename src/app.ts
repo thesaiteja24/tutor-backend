@@ -6,6 +6,7 @@ import { adminModule } from "@/modules/admin/index.ts";
 import { authRoutes } from "@/modules/auth/index.ts";
 import { conversationRoutes } from "@/modules/conversations/index.ts";
 import { devRoutes } from "@/modules/dev/dev.routes.ts";
+import { organizationRequestRoutes } from "@/modules/organization-requests/index.ts";
 import { personaRoutes } from "@/modules/personas/index.ts";
 import { practiceModeRoutes } from "@/modules/practice-modes/index.ts";
 import { userRoutes } from "@/modules/users/index.ts";
@@ -179,6 +180,7 @@ export async function buildApp(): Promise<FastifyInstance> {
       await api.register(userRoutes, { prefix: "/users" });
       await api.register(personaRoutes, { prefix: "/personas" });
       await api.register(practiceModeRoutes, { prefix: "/practice-modes" });
+      await api.register(organizationRequestRoutes, { prefix: "/organization-requests" });
       await api.register(conversationRoutes, { prefix: "/conversations" });
       await api.register(voiceTutorRoutes, { prefix: "/voice-tutor" });
       await api.register(adminModule, { prefix: "/admin" });
