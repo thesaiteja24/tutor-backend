@@ -4,22 +4,15 @@ import { authenticateUser } from "@/modules/auth/auth.middleware.ts";
 import { ForbiddenError } from "@/shared/errors/index.ts";
 import { formatSuccessResponse } from "@/shared/utils/response.ts";
 
+import {
+  getMeRouteDoc,
+  getMyAnalyticsRouteDoc,
+  getUserByIdRouteDoc,
+  updateMeRouteDoc,
+  updateUserByIdRouteDoc,
+} from "./user.docs.ts";
 import { getUserParamsSchema, updateUserSchema } from "./user.schemas.ts";
 import { userService } from "./user.services.ts";
-
-const userDocSchema = {
-  type: "object",
-  properties: {
-    id: { type: "string", format: "uuid" },
-    email: { type: "string", format: "email" },
-    displayName: { type: "string", example: "Demo Student" },
-    nativeLanguage: { type: "string", example: "te" },
-    englishLevel: { type: "string", example: "intermediate" },
-    isActive: { type: "boolean", example: true },
-    createdAt: { type: "string" },
-    updatedAt: { type: "string" },
-  },
-};
 
 export const userRoutes: FastifyPluginAsync = async (fastify) => {
   // GET /api/v1/users/me -> Authenticated user
@@ -27,29 +20,7 @@ export const userRoutes: FastifyPluginAsync = async (fastify) => {
     "/me",
     {
       preHandler: [authenticateUser],
-      schema: {
-        tags: ["Users"],
-        summary: "Get current authenticated user",
-        description: "Retrieves the student profile associated with the authenticated JWT.",
-        response: {
-          200: {
-            description: "User profile retrieved successfully",
-            type: "object",
-            properties: {
-              success: { type: "boolean", example: true },
-              message: { type: "string", example: "User profile retrieved successfully" },
-              data: userDocSchema,
-              meta: {
-                type: "object",
-                properties: {
-                  timestamp: { type: "string" },
-                  requestId: { type: "string" },
-                },
-              },
-            },
-          },
-        },
-      },
+      schema: getMeRouteDoc,
     },
     async (request, reply) => {
       const user = await userService.getUserById(request.user!.userId);
@@ -64,29 +35,7 @@ export const userRoutes: FastifyPluginAsync = async (fastify) => {
     "/me/analytics",
     {
       preHandler: [authenticateUser],
-      schema: {
-        tags: ["Users"],
-        summary: "Get current user analytics & practice dashboard metrics",
-        description: "Retrieves speaking time, streak, weekly progress, skill breakdown, vocabulary vault, and recent history.",
-        response: {
-          200: {
-            description: "User analytics retrieved successfully",
-            type: "object",
-            properties: {
-              success: { type: "boolean", example: true },
-              message: { type: "string", example: "User analytics retrieved successfully" },
-              data: { type: "object", additionalProperties: true },
-              meta: {
-                type: "object",
-                properties: {
-                  timestamp: { type: "string" },
-                  requestId: { type: "string" },
-                },
-              },
-            },
-          },
-        },
-      },
+      schema: getMyAnalyticsRouteDoc,
     },
     async (request, reply) => {
       const analytics = await userService.getUserAnalytics(request.user!.userId);
@@ -101,37 +50,7 @@ export const userRoutes: FastifyPluginAsync = async (fastify) => {
     "/me",
     {
       preHandler: [authenticateUser],
-      schema: {
-        tags: ["Users"],
-        summary: "Update current user",
-        description: "Updates the authenticated student's native language, English level, or display name.",
-        body: {
-          type: "object",
-          properties: {
-            displayName: { type: "string", example: "Demo Student" },
-            nativeLanguage: { type: "string", example: "te" },
-            englishLevel: { type: "string", enum: ["beginner", "intermediate", "advanced"], example: "intermediate" },
-          },
-        },
-        response: {
-          200: {
-            description: "User profile updated successfully",
-            type: "object",
-            properties: {
-              success: { type: "boolean", example: true },
-              message: { type: "string", example: "User profile updated successfully" },
-              data: userDocSchema,
-              meta: {
-                type: "object",
-                properties: {
-                  timestamp: { type: "string" },
-                  requestId: { type: "string" },
-                },
-              },
-            },
-          },
-        },
-      },
+      schema: updateMeRouteDoc,
     },
     async (request, reply) => {
       const body = updateUserSchema.parse(request.body);
@@ -142,83 +61,12 @@ export const userRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
-  // GET /api/v1/users/:id
+  // GET /api/v1/users/:id -> Get user by ID
   fastify.get(
     "/:id",
     {
       preHandler: [authenticateUser],
-      schema: {
-        tags: ["Users"],
-        summary: "Get user by ID",
-        description: "Retrieves a student profile by their unique identifier.",
-        params: {
-          type: "object",
-          required: ["id"],
-          properties: {
-            id: { type: "string", format: "uuid" },
-          },
-        },
-        response: {
-          200: {
-            description: "User profile retrieved successfully",
-            type: "object",
-            properties: {
-              success: { type: "boolean", example: true },
-              message: { type: "string", example: "User profile retrieved successfully" },
-              data: userDocSchema,
-              meta: {
-                type: "object",
-                properties: {
-                  timestamp: { type: "string" },
-                  requestId: { type: "string" },
-                },
-              },
-            },
-          },
-          400: {
-            description: "Invalid UUID identifier",
-            type: "object",
-            properties: {
-              success: { type: "boolean", example: false },
-              message: { type: "string", example: "Invalid request payload or parameters" },
-              errors: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    code: { type: "string" },
-                    field: { type: "string" },
-                    message: { type: "string" },
-                  },
-                  additionalProperties: true,
-                },
-              },
-              meta: { type: "object", additionalProperties: true },
-            },
-          },
-          404: {
-            description: "User not found",
-            type: "object",
-            properties: {
-              success: { type: "boolean", example: false },
-              message: { type: "string", example: "User with ID not found" },
-              errors: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    code: { type: "string" },
-                    field: { type: "string" },
-                    message: { type: "string" },
-                  },
-                  additionalProperties: true,
-                },
-              },
-              meta: { type: "object", additionalProperties: true },
-            },
-          },
-        },
-      },
+      schema: getUserByIdRouteDoc,
     },
     async (request, reply) => {
       const { id } = getUserParamsSchema.parse(request.params);
@@ -232,49 +80,12 @@ export const userRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
-  // PATCH /api/v1/users/:id
+  // PATCH /api/v1/users/:id -> Update user by ID
   fastify.patch(
     "/:id",
     {
       preHandler: [authenticateUser],
-      schema: {
-        tags: ["Users"],
-        summary: "Update user by ID",
-        description: "Updates a student profile's native language, english level, or name.",
-        params: {
-          type: "object",
-          required: ["id"],
-          properties: {
-            id: { type: "string", format: "uuid" },
-          },
-        },
-        body: {
-          type: "object",
-          properties: {
-            displayName: { type: "string", example: "Demo Student" },
-            nativeLanguage: { type: "string", example: "te" },
-            englishLevel: { type: "string", enum: ["beginner", "intermediate", "advanced"], example: "intermediate" },
-          },
-        },
-        response: {
-          200: {
-            description: "User profile updated successfully",
-            type: "object",
-            properties: {
-              success: { type: "boolean", example: true },
-              message: { type: "string", example: "User profile updated successfully" },
-              data: userDocSchema,
-              meta: {
-                type: "object",
-                properties: {
-                  timestamp: { type: "string" },
-                  requestId: { type: "string" },
-                },
-              },
-            },
-          },
-        },
-      },
+      schema: updateUserByIdRouteDoc,
     },
     async (request, reply) => {
       const { id } = getUserParamsSchema.parse(request.params);
