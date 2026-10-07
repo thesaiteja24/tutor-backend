@@ -16,14 +16,15 @@ const docsPluginAsync: FastifyPluginAsync = async (fastify) => {
       tags: [
         { name: "Auth", description: "User registration, Argon2id login, 6-digit OTP email verification, password reset, session refresh, and JWT profile" },
         { name: "Users", description: "Student profile, English level, native language, and learner practice analytics" },
-        { name: "Voice Tutor", description: "Push-to-Talk speech-to-text, LLM tutor response, and text-to-speech interaction" },
         { name: "Personas", description: "Tutor personas, voice configurations, avatars, and character profiles for learners" },
-        { name: "Practice Modes", description: "Configurable AI tutor practice modes, coaching instructions, and home screen scenarios" },
-        { name: "Conversations", description: "User conversation lifecycle and historical message sessions" },
-        { name: "Admin Analytics", description: "Superadmin platform KPIs, Sarvam Saaras/Bulbul cost engine, and latency distribution" },
         { name: "Admin Personas", description: "Superadmin Persona Prompt Studio, system prompts, and voice assignment" },
-        { name: "Admin Practice Modes", description: "Superadmin Practice Mode Pedagogical Prompt Studio" },
+        { name: "Practice Modes", description: "Configurable AI tutor practice modes, coaching instructions, and home screen scenarios" },
+        { name: "Voice Tutor", description: "Push-to-Talk speech-to-text, LLM tutor response, and text-to-speech interaction" },
+        { name: "Conversations", description: "User conversation lifecycle and historical message sessions" },
+        { name: "Organization Requests", description: "Learner organization join and creation requests" },
+        { name: "Admin Analytics", description: "Superadmin platform KPIs, AI cost engine, and latency distribution" },
         { name: "Admin Users", description: "Superadmin platform user directory, role assignment, and account status management" },
+        { name: "Admin Practice Modes", description: "Superadmin Practice Mode Pedagogical Prompt Studio" },
       ],
       components: {
         securitySchemes: {

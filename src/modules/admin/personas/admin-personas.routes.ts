@@ -3,13 +3,20 @@ import { z } from "zod";
 
 import { authenticateUser, requireRole } from "@/modules/auth/auth.middleware.ts";
 import {
+  adminCreatePersonaRouteDoc,
+  adminDeletePersonaRouteDoc,
+  adminGetPersonaRouteDoc,
+  adminListPersonasRouteDoc,
+  adminUpdatePersonaRouteDoc,
+} from "@/modules/personas/persona.docs.ts";
+import {
   createPersonaSchema,
   listPersonasQuerySchema,
   updatePersonaSchema,
 } from "@/modules/personas/persona.schemas.ts";
 import { personaService } from "@/modules/personas/persona.services.ts";
 import { uuidv7Schema } from "@/shared/schemas/identifiers.ts";
-import { formatPaginatedResponse,formatSuccessResponse } from "@/shared/utils/response.ts";
+import { formatPaginatedResponse, formatSuccessResponse } from "@/shared/utils/response.ts";
 
 const personaIdParamSchema = z.strictObject({
   id: uuidv7Schema,
@@ -22,14 +29,7 @@ export const adminPersonaRoutes: FastifyPluginAsync = async (fastify) => {
   // GET /api/v1/admin/personas
   fastify.get(
     "/",
-    {
-      schema: {
-        tags: ["Admin Personas"],
-        summary: "List all tutor personas for prompt studio",
-        description: "Returns all tutor personas with system prompts, voice configurations, and preview audios.",
-        security: [{ bearerAuth: [] }],
-      },
-    },
+    { schema: adminListPersonasRouteDoc },
     async (request, reply) => {
       const query = listPersonasQuerySchema.parse(request.query);
       const result = await personaService.listPersonas(query);
@@ -46,14 +46,7 @@ export const adminPersonaRoutes: FastifyPluginAsync = async (fastify) => {
   // GET /api/v1/admin/personas/:id
   fastify.get(
     "/:id",
-    {
-      schema: {
-        tags: ["Admin Personas"],
-        summary: "Get single persona details for prompt editing",
-        description: "Returns full system prompt and voice model configuration for a single persona.",
-        security: [{ bearerAuth: [] }],
-      },
-    },
+    { schema: adminGetPersonaRouteDoc },
     async (request, reply) => {
       const { id } = personaIdParamSchema.parse(request.params);
       const persona = await personaService.getPersonaById(id);
@@ -66,14 +59,7 @@ export const adminPersonaRoutes: FastifyPluginAsync = async (fastify) => {
   // POST /api/v1/admin/personas
   fastify.post(
     "/",
-    {
-      schema: {
-        tags: ["Admin Personas"],
-        summary: "Create a new tutor persona",
-        description: "Superadmin endpoint to create a new AI tutor with backstory, system prompt, and Sarvam voice ID.",
-        security: [{ bearerAuth: [] }],
-      },
-    },
+    { schema: adminCreatePersonaRouteDoc },
     async (request, reply) => {
       const input = createPersonaSchema.parse(request.body);
       const created = await personaService.createPersona(input);
@@ -86,14 +72,7 @@ export const adminPersonaRoutes: FastifyPluginAsync = async (fastify) => {
   // PATCH /api/v1/admin/personas/:id
   fastify.patch(
     "/:id",
-    {
-      schema: {
-        tags: ["Admin Personas"],
-        summary: "Update persona prompt or voice model",
-        description: "Allows superadmin to update persona system prompts, voice configs, avatar URL, or preview audios.",
-        security: [{ bearerAuth: [] }],
-      },
-    },
+    { schema: adminUpdatePersonaRouteDoc },
     async (request, reply) => {
       const { id } = personaIdParamSchema.parse(request.params);
       const input = updatePersonaSchema.parse(request.body);
@@ -107,14 +86,7 @@ export const adminPersonaRoutes: FastifyPluginAsync = async (fastify) => {
   // DELETE /api/v1/admin/personas/:id
   fastify.delete(
     "/:id",
-    {
-      schema: {
-        tags: ["Admin Personas"],
-        summary: "Soft delete / deactivate tutor persona",
-        description: "Superadmin endpoint to deactivate a tutor persona from the platform.",
-        security: [{ bearerAuth: [] }],
-      },
-    },
+    { schema: adminDeletePersonaRouteDoc },
     async (request, reply) => {
       const { id } = personaIdParamSchema.parse(request.params);
       await personaService.deletePersona(id);
