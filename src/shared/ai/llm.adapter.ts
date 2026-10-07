@@ -19,11 +19,18 @@ import {
 
 export type { ChatMessage, LLMProvider, TutorLLMParams };
 
-export class OpenAILLMProvider implements LLMProvider {
-  private apiKey = env.OPENAI_API_KEY;
-  private baseUrl = env.OPENAI_BASE_URL;
-  private model = env.OPENAI_MODEL;
+export class GemmaLLMProvider implements LLMProvider {
+  private apiKey = env.GEMMA_LLM_API_KEY || env.OPENAI_API_KEY || "";
+  private baseUrl = env.GEMMA_LLM_ENDPOINT_URL || env.OPENAI_BASE_URL || "https://llm.codegnan.ai/v1";
+  private model = env.GEMMA_LLM_MODEL || env.OPENAI_MODEL || "gemma4";
   private maxTokens = env.OPENAI_MAX_COMPLETION_TOKENS;
+
+  constructor(options?: { apiKey?: string; baseUrl?: string; model?: string; maxTokens?: number }) {
+    if (options?.apiKey) this.apiKey = options.apiKey;
+    if (options?.baseUrl) this.baseUrl = options.baseUrl;
+    if (options?.model) this.model = options.model;
+    if (options?.maxTokens) this.maxTokens = options.maxTokens;
+  }
 
   async generateTutorReply(params: TutorLLMParams): Promise<TutorTurnResponse> {
     const systemPrompt = buildTutorSystemPrompt({
@@ -260,6 +267,8 @@ export class MockLLMProvider implements LLMProvider {
   }
 }
 
+export { GemmaLLMProvider as OpenAILLMProvider };
+
 export function createLLMProvider(): LLMProvider {
-  return new OpenAILLMProvider();
+  return new GemmaLLMProvider();
 }

@@ -7,7 +7,7 @@ export const SEEDED_PERSONAS = [
   {
     id: "01950000-0000-7000-8000-000000000001",
     name: "Maya",
-    voiceId: "priya",
+    voiceId: "b72c4802",
     avatarUrl: "/static/avatars/maya.png",
     sampleAudioUrl: "/static/audio/personas/maya/preview_te.wav",
     previewAudiosByLang: {
@@ -24,7 +24,7 @@ export const SEEDED_PERSONAS = [
   {
     id: "01950000-0000-7000-8000-000000000002",
     name: "Leo",
-    voiceId: "shubh",
+    voiceId: "demo0001",
     avatarUrl: "/static/avatars/leo.png",
     sampleAudioUrl: "/static/audio/personas/leo/preview_te.wav",
     previewAudiosByLang: {
@@ -41,7 +41,7 @@ export const SEEDED_PERSONAS = [
   {
     id: "01950000-0000-7000-8000-000000000003",
     name: "Emma",
-    voiceId: "ritu",
+    voiceId: "7fcf2618",
     avatarUrl: "/static/avatars/emma.png",
     sampleAudioUrl: "/static/audio/personas/emma/preview_te.wav",
     previewAudiosByLang: {
@@ -58,7 +58,7 @@ export const SEEDED_PERSONAS = [
   {
     id: "01950000-0000-7000-8000-000000000004",
     name: "David",
-    voiceId: "aditya",
+    voiceId: "68895820",
     avatarUrl: "/static/avatars/david.png",
     sampleAudioUrl: "/static/audio/personas/david/preview_te.wav",
     previewAudiosByLang: {

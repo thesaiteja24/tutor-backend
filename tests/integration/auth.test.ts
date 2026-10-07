@@ -297,8 +297,8 @@ describe("Authentication & Email Verification Integration Suite", () => {
       const otpHash = await hashOtp(changeOtp);
       await db
         .update(authOtps)
-        .set({ otpHash, expiresAt: new Date(Date.now() + 600000) })
-        .where(and(eq(authOtps.email, newTestEmail), eq(authOtps.purpose, "email_change")));
+        .set({ otpHash, expiresAt: new Date(Date.now() + 600000), attempts: 0, isUsed: false })
+        .where(and(eq(authOtps.email, newTestEmail.toLowerCase()), eq(authOtps.purpose, "email_change")));
 
       // 5. Confirm email change
       const confirmRes = await app.inject({
@@ -313,8 +313,8 @@ describe("Authentication & Email Verification Integration Suite", () => {
       expect(confirmRes.statusCode).toBe(200);
       const confirmJson = confirmRes.json();
       expect(confirmJson.success).toBe(true);
-      expect(confirmJson.data.user.email).toBe(newTestEmail);
-      expect(confirmJson.data.token).toBeDefined();
+      expect(confirmJson.data?.user?.email).toBe(newTestEmail.toLowerCase());
+      expect(confirmJson.data?.token).toBeDefined();
 
       // 6. Verify profile with new token
       const meRes = await app.inject({

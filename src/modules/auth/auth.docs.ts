@@ -366,8 +366,10 @@ export const confirmChangeEmailRouteDoc = {
         data: {
           type: "object",
           properties: {
-            email: { type: "string", example: "newemail@example.com" },
-            message: { type: "string", example: "Email updated" },
+            success: { type: "boolean", example: true },
+            message: { type: "string", example: "Email address changed successfully." },
+            token: { type: "string", example: "eyJhbGciOiJIUzI1Ni..." },
+            user: userProfileSchema,
           },
         },
         meta: metaSchema,

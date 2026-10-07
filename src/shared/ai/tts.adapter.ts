@@ -1,5 +1,3 @@
-import { SarvamAIClient } from "sarvamai";
-
 import { env } from "@/config/index.ts";
 import { devLogger } from "@/shared/utils/dev-logger.ts";
 
@@ -13,57 +11,51 @@ export interface TTSProvider {
   synthesize(text: string, speaker?: string, languageCode?: string): Promise<TTSResult>;
 }
 
-type SarvamSpeechRequest = {
-  text: string;
-  language_code: SarvamSpeechLanguage;
-  speaker: SarvamSpeechSpeaker;
-  model: SarvamSpeechModel;
-  speech_sample_rate: 24000;
-  output_audio_codec: "wav";
+// Fallback mapping for legacy voice IDs / aliases
+const LEGACY_VOICE_MAP: Record<string, string> = {
+  priya: "b72c4802",
+  maya: "b72c4802",
+  shubh: "demo0001",
+  leo: "demo0001",
+  ritu: "7fcf2618",
+  emma: "7fcf2618",
+  aditya: "68895820",
+  david: "68895820",
 };
 
-type SarvamSpeechLanguage = "bn-IN" | "en-IN" | "gu-IN" | "hi-IN" | "kn-IN" | "ml-IN" | "mr-IN" | "od-IN" | "pa-IN" | "ta-IN" | "te-IN";
-type SarvamSpeechSpeaker = "shubh" | "aditya" | "ritu" | "priya" | "neha" | "rahul" | "pooja" | "rohan" | "simran" | "kavya" | "amit" | "dev" | "ishita" | "shreya" | "ratan" | "varun" | "manan" | "sumit" | "roopa" | "kabir" | "aayan" | "ashutosh" | "advait" | "anand" | "tanya" | "tarun" | "sunny" | "mani" | "gokul" | "vijay" | "shruti" | "suhani" | "mohit" | "kavitha" | "rehan" | "soham" | "rupali";
-type SarvamSpeechModel = "bulbul:v3" | "bulbul:v2";
-
-type SarvamSpeechResponse = { audios: string[] };
-type SynthesizeRequest = (request: SarvamSpeechRequest) => Promise<SarvamSpeechResponse>;
-
-const LANGUAGE_CODES: Record<string, string> = {
-  te: "te-IN",
-  hi: "hi-IN",
-  bn: "bn-IN",
-  ta: "ta-IN",
-  kn: "kn-IN",
-  ml: "ml-IN",
-  mr: "mr-IN",
-  gu: "gu-IN",
-  pa: "pa-IN",
-  od: "od-IN",
-  en: "en-IN",
-};
-
-function toLanguageCode(languageCode?: string): SarvamSpeechLanguage {
-  if (!languageCode) return (env.SARVAM_TTS_LANGUAGE || "te-IN") as SarvamSpeechLanguage;
-  if (languageCode.includes("-")) return languageCode as SarvamSpeechLanguage;
-  return (LANGUAGE_CODES[languageCode.toLowerCase()] || env.SARVAM_TTS_LANGUAGE || "te-IN") as SarvamSpeechLanguage;
-}
-
-export class SarvamTTSProvider implements TTSProvider {
-  private readonly synthesizeRequest: SynthesizeRequest;
+export class OmnivoiceTTSProvider implements TTSProvider {
+  private readonly baseUrl: string;
+  private readonly apiKey: string;
+  private readonly model: string;
+  private readonly defaultVoiceId: string;
   private readonly audioCache = new Map<string, TTSResult>();
   private readonly maxCacheSize = 250;
 
-  constructor(options?: { apiKey?: string; synthesize?: SynthesizeRequest }) {
-    if (options?.synthesize) {
-      this.synthesizeRequest = options.synthesize;
-      return;
-    }
+  constructor(options?: {
+    baseUrl?: string;
+    apiKey?: string;
+    model?: string;
+    defaultVoiceId?: string;
+  }) {
+    this.baseUrl = (options?.baseUrl || env.OMNIVOICE_TTS_ENDPOINT_URL || "https://omnivoice.codegnan.ai").replace(/\/+$/, "");
+    this.apiKey = options?.apiKey || env.OMNIVOICE_TTS_API_KEY || "";
+    this.model = options?.model || env.OMNIVOICE_TTS_MODEL || "omnivoice";
+    this.defaultVoiceId = options?.defaultVoiceId || env.OMNIVOICE_TTS_DEFAULT_VOICE_ID || "b72c4802";
+  }
 
-    const client = new SarvamAIClient({
-      apiSubscriptionKey: options?.apiKey || env.SARVAM_API_KEY || "",
-    });
-    this.synthesizeRequest = (request) => client.textToSpeech.convert(request);
+  private get endpoint(): string {
+    return `${this.baseUrl}/v1/audio/speech`;
+  }
+
+  private resolveVoiceId(speaker?: string): string {
+    if (!speaker || speaker === "default") {
+      return this.defaultVoiceId;
+    }
+    const lower = speaker.toLowerCase();
+    if (LEGACY_VOICE_MAP[lower]) {
+      return LEGACY_VOICE_MAP[lower];
+    }
+    return speaker;
   }
 
   clearCache() {
@@ -72,48 +64,82 @@ export class SarvamTTSProvider implements TTSProvider {
 
   async synthesize(text: string, speaker?: string, languageCode?: string): Promise<TTSResult> {
     const cleanText = text.trim();
-    if (!cleanText) throw new Error("Cannot synthesize empty text");
+    if (!cleanText) {
+      throw new Error("Cannot synthesize empty text");
+    }
 
-    const resolvedSpeaker = (speaker || env.SARVAM_TTS_SPEAKER) as SarvamSpeechSpeaker;
-    const resolvedLang = toLanguageCode(languageCode);
-    const resolvedModel = (env.SARVAM_TTS_MODEL || "bulbul:v3") as SarvamSpeechModel;
+    const voice = this.resolveVoiceId(speaker);
+    const cacheKey = `${this.model}:${voice}:${languageCode || "auto"}:${cleanText}`;
 
-    const cacheKey = `${resolvedModel}:${resolvedSpeaker}:${resolvedLang}:${cleanText}`;
     if (this.audioCache.has(cacheKey)) {
-      devLogger.info("TTS:Sarvam", "Audio cache HIT for phrase", { text: cleanText, speaker: resolvedSpeaker });
+      devLogger.info("TTS:Omnivoice", "Audio cache HIT for phrase", { text: cleanText, voice });
       return this.audioCache.get(cacheKey)!;
     }
 
-    const request = {
-      text: cleanText,
-      language_code: resolvedLang,
-      speaker: resolvedSpeaker,
-      model: resolvedModel,
-      speech_sample_rate: 24000 as const,
-      output_audio_codec: "wav" as const,
-    };
-
-    devLogger.info("TTS:Sarvam", "Sending text to Bulbul v3", {
-      model: request.model,
-      speaker: request.speaker,
-      languageCode: request.language_code,
+    devLogger.info("TTS:Omnivoice", `Sending text to Omnivoice TTS (${this.endpoint})`, {
+      model: this.model,
+      voice,
+      languageCode,
       textLength: cleanText.length,
     });
 
-    const response = await this.synthesizeRequest(request);
-    const audioBase64 = response.audios[0];
-    if (!audioBase64) throw new Error("Sarvam TTS returned no audio");
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (this.apiKey) {
+      const key = this.apiKey.replace(/^Bearer\s+/i, "").trim();
+      headers.Authorization = `Bearer ${key}`;
+    }
 
-    const audioBuffer = Buffer.from(audioBase64, "base64");
-    devLogger.info("TTS:Sarvam", "Received Bulbul audio", { audioBytes: audioBuffer.length });
+    const payload: Record<string, unknown> = {
+      model: this.model,
+      input: cleanText,
+      voice,
+      response_format: "mp3",
+    };
+    if (languageCode) {
+      payload.language = languageCode.split("-")[0]?.toLowerCase();
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), env.TTS_TIMEOUT_MS || 12000);
+
+    let response: Response;
+    try {
+      response = await fetch(this.endpoint, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+    } catch (fetchErr) {
+      clearTimeout(timeoutId);
+      devLogger.error("TTS:Omnivoice", `Omnivoice request failed or timed out: ${String(fetchErr)}`);
+      throw fetchErr;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      devLogger.error("TTS:Omnivoice", `Omnivoice TTS failed (${response.status}): ${errorText}`, null, {
+        status: response.status,
+      });
+      throw new Error(`Omnivoice TTS failed (${response.status}): ${errorText}`);
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const audioBuffer = Buffer.from(arrayBuffer);
+
+    devLogger.info("TTS:Omnivoice", "Received Omnivoice audio stream", { audioBytes: audioBuffer.length });
 
     const result: TTSResult = {
       audioBuffer,
-      mimeType: "audio/wav",
-      format: "wav",
+      mimeType: "audio/mpeg",
+      format: "mp3",
     };
 
-    // Store in cache (LRU eviction if at capacity)
+    // Store in LRU cache
     if (this.audioCache.size >= this.maxCacheSize) {
       const oldestKey = this.audioCache.keys().next().value;
       if (oldestKey) this.audioCache.delete(oldestKey);
@@ -127,13 +153,13 @@ export class SarvamTTSProvider implements TTSProvider {
 export class MockTTSProvider implements TTSProvider {
   async synthesize(_text: string): Promise<TTSResult> {
     return {
-      audioBuffer: Buffer.from("mock-wav"),
-      mimeType: "audio/wav",
-      format: "wav",
+      audioBuffer: Buffer.from("mock-mp3"),
+      mimeType: "audio/mpeg",
+      format: "mp3",
     };
   }
 }
 
 export function createTTSProvider(): TTSProvider {
-  return new SarvamTTSProvider();
+  return new OmnivoiceTTSProvider();
 }

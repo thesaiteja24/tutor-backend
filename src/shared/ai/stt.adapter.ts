@@ -1,5 +1,3 @@
-import { SarvamAIClient } from "sarvamai";
-
 import { env } from "@/config/index.ts";
 import { devLogger } from "@/shared/utils/dev-logger.ts";
 
@@ -12,6 +10,7 @@ export interface STTTranscriptionResult {
 
 export interface STTOptions {
   language?: string;
+  mode?: "native" | "mixed" | "romanised";
 }
 
 export interface STTProvider {
@@ -22,84 +21,100 @@ export interface STTProvider {
   ): Promise<STTTranscriptionResult>;
 }
 
-type SarvamTranscriptionRequest = {
-  file: {
-    data: Buffer;
-    filename: string;
-    contentType: string;
-    contentLength: number;
-  };
-  model: "saaras:v3";
-  language_code: "unknown";
-  mode: "codemix";
-  input_audio_codec: "wav";
+type IndicTranscribeResponse = {
+  text: string;
+  lang?: string;
+  mode?: string;
+  lid?: unknown;
+  audio_seconds?: number;
+  processing_seconds?: number;
+  real_time_factor?: number;
+  chunks?: number;
+  model?: string;
+  revision?: string;
 };
 
-type SarvamTranscriptionResponse = {
-  transcript: string;
-  language_code?: string;
-  language_probability?: number;
-};
+export class IndicSTTProvider implements STTProvider {
+  private readonly baseUrl: string;
+  private readonly apiKey: string;
 
-type TranscribeRequest = (request: SarvamTranscriptionRequest) => Promise<SarvamTranscriptionResponse>;
+  constructor(options?: { baseUrl?: string; apiKey?: string }) {
+    this.baseUrl = (options?.baseUrl || env.INDIC_STT_ENDPOINT_URL || "https://indic.codegnan.ai").replace(/\/+$/, "");
+    this.apiKey = options?.apiKey || env.INDIC_STT_API_KEY || "";
+  }
 
-export class SarvamSTTProvider implements STTProvider {
-  private readonly transcribeRequest: TranscribeRequest;
-
-  constructor(options?: { apiKey?: string; transcribe?: TranscribeRequest }) {
-    if (options?.transcribe) {
-      this.transcribeRequest = options.transcribe;
-      return;
-    }
-
-    const client = new SarvamAIClient({
-      apiSubscriptionKey: options?.apiKey || env.SARVAM_API_KEY || "",
-    });
-
-    this.transcribeRequest = (request) => client.speechToText.transcribe(request);
+  private get endpoint(): string {
+    return `${this.baseUrl}/v1/transcribe`;
   }
 
   async transcribe(
     audioBuffer: Buffer,
     mimeType: string,
-    _options?: STTOptions,
+    options?: STTOptions,
   ): Promise<STTTranscriptionResult> {
     if (!audioBuffer.length) {
       throw new Error("Cannot transcribe an empty audio buffer");
     }
 
     const contentType = mimeType || "audio/wav";
-    devLogger.info("STT:Sarvam", "Sending WAV audio to Saaras v3", {
+    const extension = contentType.includes("mpeg") || contentType.includes("mp3") ? "mp3" : "wav";
+    const filename = `recording.${extension}`;
+
+    const formData = new FormData();
+    const blob = new Blob([audioBuffer], { type: contentType });
+    formData.append("file", blob, filename);
+
+    if (options?.language) {
+      // Normalize language code (e.g., 'te-IN' -> 'te')
+      const normalizedLang = options.language.split("-")[0]?.toLowerCase() || options.language;
+      formData.append("lang", normalizedLang);
+    }
+    formData.append("mode", options?.mode || "native");
+
+    devLogger.info("STT:Indic", `Sending audio to Indic STT (${this.endpoint})`, {
       bytes: audioBuffer.length,
       contentType,
-      model: "saaras:v3",
-      mode: "codemix",
+      lang: options?.language,
+      mode: options?.mode || "native",
+      model: env.INDIC_STT_MODEL,
     });
 
-    const response = await this.transcribeRequest({
-      file: {
-        data: audioBuffer,
-        filename: "utterance.wav",
-        contentType,
-        contentLength: audioBuffer.length,
-      },
-      model: "saaras:v3",
-      language_code: "unknown",
-      mode: "codemix",
-      input_audio_codec: "wav",
+    const headers: Record<string, string> = {};
+    if (this.apiKey) {
+      const key = this.apiKey.replace(/^Bearer\s+/i, "").trim();
+      headers.Authorization = `Bearer ${key}`;
+    }
+
+    const response = await fetch(this.endpoint, {
+      method: "POST",
+      headers,
+      body: formData,
     });
 
-    const transcript = response.transcript.trim();
-    devLogger.info("STT:Sarvam", "Received Saaras transcript", {
+    if (!response.ok) {
+      const errorBody = await response.text();
+      devLogger.error("STT:Indic", `Indic STT failed (${response.status}): ${errorBody}`, null, {
+        status: response.status,
+      });
+      throw new Error(`Indic STT transcription failed (${response.status}): ${errorBody}`);
+    }
+
+    const data = (await response.json()) as IndicTranscribeResponse;
+    const transcript = (data.text || "").trim();
+
+    devLogger.info("STT:Indic", "Received Indic STT transcript", {
       transcript,
-      languageCode: response.language_code,
-      languageProbability: response.language_probability,
+      lang: data.lang,
+      audioSeconds: data.audio_seconds,
+      processingSeconds: data.processing_seconds,
+      rtf: data.real_time_factor,
     });
 
     return {
       text: transcript,
-      languageCode: response.language_code,
-      confidence: response.language_probability,
+      languageCode: data.lang,
+      durationSeconds: data.audio_seconds,
+      confidence: 0.95,
     };
   }
 }
@@ -116,5 +131,5 @@ export class MockSTT implements STTProvider {
 }
 
 export function createSTTProvider(): STTProvider {
-  return new SarvamSTTProvider();
+  return new IndicSTTProvider();
 }
